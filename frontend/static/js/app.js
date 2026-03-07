@@ -1006,13 +1006,16 @@ async function doLogout(){
   document.getElementById('loginBtn').style.display='inline-flex';
 }
 
-// Hook into switchTab to render ML/NL/DB on demand
-const _origSwitchTab = switchTab;
+// Override switchTab for v3 panels — NO recursion
 function switchTab(tab) {
-  _origSwitchTab(tab);
-  if(tab==='ml' && SESSION_ID) renderML();
-  if(tab==='nlchart' && SESSION_ID) renderNLChart();
-  if(tab==='dbconnect') renderDBConnect();
+  document.querySelectorAll('.nav-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(el =>
+    el.classList.toggle('active', el.id === `panel-${tab}`));
+  // Render on-demand panels
+  if(tab === 'ml' && SESSION_ID) renderML();
+  if(tab === 'nlchart' && SESSION_ID) renderNLChart();
+  if(tab === 'dbconnect') renderDBConnect();
 }
 
 // Check auth on load
