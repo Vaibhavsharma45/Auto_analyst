@@ -53,3 +53,4 @@ def upload_text():
         return jsonify({"session_id": session_id, "info": get_sample_info(df), "filename": "pasted-data.csv"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+

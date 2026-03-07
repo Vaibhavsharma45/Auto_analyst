@@ -127,3 +127,4 @@ def get_sample_info(df: pd.DataFrame) -> dict:
         "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
         "sample": df.head(5).fillna("").to_dict("records")
     }
+

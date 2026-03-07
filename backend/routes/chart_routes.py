@@ -61,3 +61,4 @@ def categorical_chart(session_id, index):
         img_data = base64.b64decode(val.split(",")[1])
         return Response(img_data, mimetype="image/png")
     return jsonify({"error": "No image"}), 500
+

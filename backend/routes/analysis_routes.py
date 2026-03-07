@@ -101,3 +101,4 @@ def download_excel(session_id):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=datamind-export.xlsx"}
     )
+

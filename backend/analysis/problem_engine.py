@@ -170,3 +170,4 @@ class ProblemEngine:
             suggestions.append("Salary distribution by department")
             suggestions.append("Performance vs Experience correlation")
         return suggestions
+

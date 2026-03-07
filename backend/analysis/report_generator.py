@@ -351,3 +351,4 @@ class ReportGenerator:
             for col, stat in self.analysis.get("numeric_stats", {}).items():
                 f.write(f"  {col}: mean={stat.get('mean')}, std={stat.get('std')}, min={stat.get('min')}, max={stat.get('max')}\n")
         return txt_path
+

@@ -18,7 +18,7 @@ chat_bp = Blueprint("chat", __name__)
 
 def _get_provider():
     """Detect which AI provider to use based on available API key"""
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_key = os.getenv("GROQ_API_KEY", "")
     groq_key = os.getenv("GROQ_API_KEY", "")
 
     if anthropic_key and anthropic_key.startswith("sk-ant-"):
@@ -204,9 +204,10 @@ GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
 
 **Option 2 — Anthropic Claude:**
 ```
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxx
+GROQ_API_KEY=sk-ant-xxxxxxxx
 ```
 👉 console.anthropic.com
 
 Key add karne ke baad server restart karo:
 `python app.py`"""
+

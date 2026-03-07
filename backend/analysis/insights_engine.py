@@ -17,7 +17,7 @@ except ImportError:
 
 
 def _get_provider():
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_key = os.getenv("GROQ_API_KEY", "")
     groq_key = os.getenv("GROQ_API_KEY", "")
     if anthropic_key and anthropic_key.startswith("sk-ant-"):
         return "anthropic", anthropic_key
@@ -155,7 +155,7 @@ Be specific. Reference actual column names and numbers."""
                     for col, s in list(ns.items())[:3]]
         return {"headline": "Dataset analyzed — add API key for AI insights",
                 "overview": f"{self.df.shape[0]} rows, {self.df.shape[1]} columns analyzed.",
-                "key_findings": findings, "data_story": "Set GROQ_API_KEY or ANTHROPIC_API_KEY for AI insights.",
+                "key_findings": findings, "data_story": "Set GROQ_API_KEY or GROQ_API_KEY for AI insights.",
                 "anomalies": [], "limitations": ["No API key configured"]}
 
     def _fallback_story(self) -> dict:
@@ -171,3 +171,4 @@ Be specific. Reference actual column names and numbers."""
                                       for r in recs[:3]],
                 "strategic_recommendations": [], "data_collection_gaps": [],
                 "next_analysis": [], "watch_out": []}
+

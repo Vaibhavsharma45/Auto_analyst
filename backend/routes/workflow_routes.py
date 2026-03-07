@@ -136,3 +136,4 @@ def workflow_status(session_id):
         "data_shape": [int(df.shape[0]), int(df.shape[1])] if df is not None else None,
         "quality_score": analysis.get("quality_report", {}).get("quality_score", 0)
     })
+

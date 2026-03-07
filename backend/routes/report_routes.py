@@ -33,3 +33,4 @@ def download_pdf(session_id):
                          as_attachment=True, download_name="datamind-report.pdf")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+

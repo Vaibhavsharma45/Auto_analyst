@@ -15,7 +15,7 @@ chmod +x setup.sh run.sh
 ./setup.sh
 
 # 3. Add your Anthropic API key
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+echo "GROQ_API_KEY=sk-ant-..." > .env
 
 # 4. Start the server
 ./run.sh
@@ -185,4 +185,5 @@ datamind-pro/
 - *"Kaunsa department sabse zyada salary deta hai?"*
 
 ---
+
 

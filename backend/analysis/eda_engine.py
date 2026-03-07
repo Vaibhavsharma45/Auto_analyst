@@ -403,3 +403,4 @@ class EDAEngine:
             "pca_summary": self.get_pca_summary(),
             "time_series": self.get_time_series_analysis(),
         }
+

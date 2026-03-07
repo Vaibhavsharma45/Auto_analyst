@@ -451,3 +451,4 @@ class ChartGenerator:
             result["categorical_charts"] = cat_charts
 
         return result
+

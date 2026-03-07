@@ -170,3 +170,4 @@ def apply_df_operation(session_id: str, operation: str, params: dict) -> dict:
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
