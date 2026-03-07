@@ -15,7 +15,7 @@ chmod +x setup.sh run.sh
 ./setup.sh
 
 # 3. Add your Anthropic API key
-echo "GROQ_API_KEY=sk-ant-..." > .env
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 
 # 4. Start the server
 ./run.sh
@@ -186,4 +186,17 @@ datamind-pro/
 
 ---
 
+## ⚙️ Configuration (.env)
 
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+FLASK_ENV=development
+FLASK_DEBUG=1
+SECRET_KEY=your-secret-key
+```
+
+> **Note**: Without `ANTHROPIC_API_KEY`, the chatbot falls back to rule-based responses. All analysis and charts work without it.
+
+---
+
+Made with ❤️ by DataMind Pro — *Powered by Claude AI*
