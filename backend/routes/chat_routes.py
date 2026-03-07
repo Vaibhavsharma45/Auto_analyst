@@ -1,22 +1,32 @@
 """
 backend/routes/chat_routes.py
-AI chatbot powered by Claude — answers questions about the loaded dataset
+AI chatbot powered by Claude — fixed version
 """
-import os, json
-from flask import Blueprint, request, jsonify, Response, stream_with_context
+import os
+import json
+import re
+from flask import Blueprint, request, jsonify
 from backend.utils.session_store import get_session, get_df, apply_df_operation, update_session
 from backend.analysis.eda_engine import EDAEngine
 
+# Load .env BEFORE reading any env vars
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
 chat_bp = Blueprint("chat", __name__)
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+def _get_api_key():
+    """Read API key fresh on every request"""
+    return os.getenv("ANTHROPIC_API_KEY", "")
 
 
 def _build_data_context(session: dict) -> str:
-    """Build rich context string from the dataset for Claude"""
     df = session["df"]
     analysis = session.get("analysis", {})
-
     overview = analysis.get("overview", {})
     num_stats = analysis.get("numeric_stats", {})
     cat_stats = analysis.get("categorical_stats", {})
@@ -24,18 +34,20 @@ def _build_data_context(session: dict) -> str:
     corr = analysis.get("correlations", {})
 
     context = f"""DATASET: {session.get('filename', 'dataset')}
-Shape: {df.shape[0]} rows × {df.shape[1]} columns
+Shape: {df.shape[0]} rows x {df.shape[1]} columns
 Columns: {', '.join(df.columns.tolist())}
 Numeric columns: {', '.join(df.select_dtypes(include='number').columns.tolist())}
 Categorical columns: {', '.join(df.select_dtypes(include='object').columns.tolist())}
-Missing cells: {overview.get('missing', {}).get('total_missing_cells', 'unknown')} ({overview.get('missing', {}).get('missing_percentage', 0):.1f}%)
-Duplicate rows: {overview.get('duplicates', {}).get('duplicate_rows', 'unknown')}
+Missing cells: {overview.get('missing', {}).get('total_missing_cells', 0)} ({overview.get('missing', {}).get('missing_percentage', 0):.1f}%)
+Duplicate rows: {overview.get('duplicates', {}).get('duplicate_rows', 0)}
 Data Quality Score: {quality.get('quality_score', 'N/A')}/100
 
 NUMERIC STATISTICS:
 """
     for col, stats in num_stats.items():
-        context += f"  {col}: mean={stats.get('mean')}, median={stats.get('median')}, std={stats.get('std')}, min={stats.get('min')}, max={stats.get('max')}, outliers={stats.get('outliers',{}).get('count',0)}, skew={stats.get('skewness')}\n"
+        context += (f"  {col}: mean={stats.get('mean')}, median={stats.get('median')}, "
+                    f"std={stats.get('std')}, min={stats.get('min')}, max={stats.get('max')}, "
+                    f"outliers={stats.get('outliers', {}).get('count', 0)}, skew={stats.get('skewness')}\n")
 
     context += "\nCATEGORICAL STATISTICS:\n"
     for col, stats in cat_stats.items():
@@ -58,20 +70,16 @@ NUMERIC STATISTICS:
 
 @chat_bp.route("/message/<session_id>", methods=["POST"])
 def chat_message(session_id):
-    """
-    Send a message to Claude about the dataset.
-    Also handles data transformation requests from the AI.
-    """
     session = get_session(session_id)
     if not session:
-        return jsonify({"error": "Session not found"}), 404
+        return jsonify({"error": "Session not found or expired. Please reload your data."}), 404
 
     body = request.get_json()
     if not body or "message" not in body:
         return jsonify({"error": "No message provided"}), 400
 
     user_message = body["message"]
-    chat_history = body.get("history", [])
+    raw_history = body.get("history", [])
     data_context = _build_data_context(session)
 
     system_prompt = f"""You are DataMind AI, an expert data analyst and data scientist.
@@ -85,6 +93,7 @@ Your job:
 3. Suggest data transformations when relevant
 4. Explain statistical concepts clearly
 5. Use Hinglish (Hindi + English mix) naturally since the user is from India
+6. Remember previous messages and maintain conversation context
 
 For transformation requests, respond with a JSON block like:
 ```json
@@ -101,19 +110,31 @@ Available operations:
 - filter_rows: {{"expression": "age > 25"}}
 - sort: {{"column": "col_name", "ascending": true}}
 - normalize: {{"column": "col_name", "method": "minmax|zscore|log"}}
-- convert_type: {{"column": "col_name", "to_type": "numeric|string|datetime"}}
 
-Be specific, data-driven, and use numbers from the statistics provided.
-Format responses with clear sections using **bold** and bullet points where helpful."""
+Be specific, data-driven, and use actual numbers from the statistics provided.
+Format responses with **bold** and bullet points where helpful."""
 
+    # Build messages array with only valid roles
     messages = []
-    for h in chat_history[-10:]:
-        messages.append({"role": h["role"], "content": h["content"]})
+    for h in raw_history[-10:]:
+        role = h.get("role", "")
+        content = h.get("content", "")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": user_message})
+
+    api_key = _get_api_key()
+
+    if not api_key:
+        return jsonify({
+            "reply": _fallback_response(user_message, session),
+            "transform_result": None,
+            "warning": "ANTHROPIC_API_KEY not set"
+        })
 
     try:
         import anthropic
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=1500,
@@ -122,12 +143,10 @@ Format responses with clear sections using **bold** and bullet points where help
         )
         reply = response.content[0].text
 
-        # Check if reply contains a transform action
         transform_result = None
-        if "```json" in reply and '"action": "transform"' in reply:
+        if '```json' in reply and '"action": "transform"' in reply:
             try:
-                import re
-                json_match = re.search(r"```json\s*(\{.*?\})\s*```", reply, re.DOTALL)
+                json_match = re.search(r'```json\s*(\{.*?\})\s*```', reply, re.DOTALL)
                 if json_match:
                     action_data = json.loads(json_match.group(1))
                     if action_data.get("action") == "transform":
@@ -136,7 +155,6 @@ Format responses with clear sections using **bold** and bullet points where help
                             action_data.get("operation"),
                             action_data.get("params", {})
                         )
-                        # Re-run analysis after transform
                         new_df = get_df(session_id)
                         if new_df is not None:
                             new_analysis = EDAEngine(new_df).run_full_analysis()
@@ -144,21 +162,16 @@ Format responses with clear sections using **bold** and bullet points where help
             except Exception:
                 pass
 
-        return jsonify({
-            "reply": reply,
-            "transform_result": transform_result
-        })
+        return jsonify({"reply": reply, "transform_result": transform_result})
 
     except Exception as e:
-        # Fallback without API
         return jsonify({
-            "reply": _fallback_response(user_message, session),
+            "reply": f"❌ API Error: {str(e)}\n\nCheck karo `.env` mein `ANTHROPIC_API_KEY` sahi hai aur server restart karo.",
             "transform_result": None
         })
 
 
 def _fallback_response(message: str, session: dict) -> str:
-    """Simple rule-based fallback when API is not available"""
     df = session["df"]
     analysis = session.get("analysis", {})
     msg_lower = message.lower()
@@ -169,33 +182,11 @@ def _fallback_response(message: str, session: dict) -> str:
         return (f"📊 **Dataset Summary:**\n\n"
                 f"- **Rows:** {shape.get('rows', len(df)):,}\n"
                 f"- **Columns:** {shape.get('columns', len(df.columns))}\n"
-                f"- **Column names:** {', '.join(df.columns.tolist())}\n"
+                f"- **Columns:** {', '.join(df.columns.tolist())}\n"
                 f"- **Missing values:** {overview.get('missing', {}).get('total_missing_cells', 0):,}\n"
-                f"- **Duplicates:** {overview.get('duplicates', {}).get('duplicate_rows', 0)}\n"
-                f"- **Quality Score:** {analysis.get('quality_report', {}).get('quality_score', 'N/A')}/100\n\n"
-                f"Aur kuch jaanna hai? 😊")
+                f"- **Quality Score:** {analysis.get('quality_report', {}).get('quality_score', 'N/A')}/100")
 
-    if any(w in msg_lower for w in ["missing", "null", "nan", "missing values"]):
-        missing = analysis.get("overview", {}).get("missing", {})
-        cols_missing = missing.get("columns_with_missing", {})
-        if not cols_missing:
-            return "✅ **Koi missing values nahi hain!** Dataset clean hai. 🎉"
-        response = "❓ **Missing Values Found:**\n\n"
-        for col, info in cols_missing.items():
-            response += f"- **{col}:** {info['count']:,} missing ({info['percentage']:.1f}%)\n"
-        return response
-
-    if any(w in msg_lower for w in ["outlier", "anomaly"]):
-        num_stats = analysis.get("numeric_stats", {})
-        response = "⚠️ **Outlier Analysis (IQR Method):**\n\n"
-        for col, stat in num_stats.items():
-            out = stat.get("outliers", {})
-            if out.get("count", 0) > 0:
-                response += f"- **{col}:** {out['count']} outliers ({out['percentage']:.1f}%)\n"
-        return response or "✅ No significant outliers detected!"
-
-    return (f"🤖 **DataMind AI** yahan hai!\n\n"
-            f"Aapka dataset loaded hai: **{len(df):,} rows × {len(df.columns)} columns**\n\n"
-            f"Aap mujhse pooch sakte ho:\n"
-            f"- Dataset ka summary\n- Missing values\n- Outliers\n- Correlations\n- Column statistics\n\n"
-            f"*(Note: Full AI responses ke liye ANTHROPIC_API_KEY set karo .env mein)*")
+    return (f"⚠️ **ANTHROPIC_API_KEY not found in .env!**\n\n"
+            f"`.env` file mein ye line add karo:\n"
+            f"`ANTHROPIC_API_KEY=sk-ant-...`\n\n"
+            f"Phir server restart karo.")
