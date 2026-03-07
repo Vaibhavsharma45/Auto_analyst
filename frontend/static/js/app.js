@@ -971,8 +971,13 @@ async function checkAuth(){
       document.getElementById('userBadge').textContent='👤 '+data.username;
       document.getElementById('userBadge').style.display='inline-block';
       document.getElementById('loginBtn').style.display='none';
+    } else {
+      // Show login modal automatically on first visit
+      setTimeout(()=>showLoginModal(), 800);
     }
-  } catch(e){}
+  } catch(e){
+    setTimeout(()=>showLoginModal(), 800);
+  }
 }
 
 async function showLoginModal(){
@@ -1008,14 +1013,13 @@ async function doLogout(){
 
 // Override switchTab for v3 panels — NO recursion
 function switchTab(tab) {
-  document.querySelectorAll('.nav-item').forEach(el =>
-    el.classList.toggle('active', el.dataset.tab === tab));
-  document.querySelectorAll('.tab-panel').forEach(el =>
-    el.classList.toggle('active', el.id === `panel-${tab}`));
-  // Render on-demand panels
-  if(tab === 'ml' && SESSION_ID) renderML();
-  if(tab === 'nlchart' && SESSION_ID) renderNLChart();
-  if(tab === 'dbconnect') renderDBConnect();
+  document.querySelectorAll('.nav-item').forEach(el=>
+    el.classList.toggle('active',el.dataset.tab===tab));
+  document.querySelectorAll('.tab-panel').forEach(el=>
+    el.classList.toggle('active',el.id===`panel-${tab}`));
+  if(tab==='ml' && SESSION_ID) renderML();
+  if(tab==='nlchart' && SESSION_ID) renderNLChart();
+  if(tab==='dbconnect') renderDBConnect();
 }
 
 // Check auth on load

@@ -1,107 +1,123 @@
 # ⚡ DataMind Pro — AI-Powered Data Analysis Platform
 
-> Like hiring a senior data analyst — upload any dataset and get full EDA, statistical analysis, charts, quality reports, and an AI chatbot. All powered by **pandas, numpy, seaborn, matplotlib, scipy, scikit-learn, and Claude AI**.
+> A full-stack data analyst in your browser. Upload any dataset and get professional EDA, statistical analysis, ML predictions, AI-generated insights, and actionable recommendations — all in one place.
 
 ---
 
-## 🚀 Quick Start
+## 💡 The Problem I Wanted to Solve
 
-```bash
-# 1. Clone / extract the project
-cd datamind-pro
+Every time I had to analyze a dataset, I found myself doing the same repetitive things — cleaning data in pandas, writing matplotlib code for charts, manually identifying patterns, writing up findings. It took hours just to get to the "interesting part."
 
-# 2. Run setup (installs all dependencies)
-chmod +x setup.sh run.sh
-./setup.sh
+I wanted something that could do all of that automatically, the way a senior data analyst would — not just show some basic charts, but actually follow the real workflow: define the problem, collect and validate data, clean it, analyze patterns, communicate findings clearly, and recommend what to do next.
 
-# 3. Add your Anthropic API key
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+That's what DataMind Pro is.
 
-# 4. Start the server
-./run.sh
+---
 
-# 5. Open browser
-open http://localhost:5000
+## 🎯 What It Does
+
+DataMind Pro follows the complete 6-step data analysis workflow:
+
+```
+Step 1 → Ask the Right Question    (goal definition wizard)
+Step 2 → Collect Relevant Data     (file upload + DB connect)
+Step 3 → Clean & Transform Data    (8 transformation operations)
+Step 4 → Analyze Patterns          (EDA + charts)
+Step 5 → Communicate Insights      (AI executive summary + data story)
+Step 6 → Recommend Actions         (prioritized action items)
 ```
 
----
-
-## 📦 Tech Stack
-
-| Layer | Libraries |
-|-------|-----------|
-| **Backend** | Flask, Flask-CORS |
-| **Data Analysis** | pandas, numpy |
-| **Statistics** | scipy, statsmodels |
-| **Visualizations** | matplotlib, seaborn, plotly |
-| **ML** | scikit-learn (PCA, preprocessing) |
-| **Reports** | reportlab, fpdf2 |
-| **Excel** | openpyxl, xlsxwriter |
-| **AI** | Anthropic Claude (claude-sonnet-4-20250514) |
+Because insight without action = useless.
 
 ---
 
-## 🧠 Features
+## ✨ Features
 
-### 📊 Automatic EDA (Exploratory Data Analysis)
-- **Distribution plots** — KDE + histogram for every numeric column
-- **Box plots** — outlier visualization using IQR method
-- **Correlation heatmap** — Seaborn diverging palette
-- **Scatter matrix (pairplot)** — Seaborn pairplot with category coloring
-- **Q-Q plots** — normality assessment for all numeric columns
-- **Violin plots** — distribution by category
-- **Missing values chart** — visual missing data profile
-- **Interactive Plotly charts** — scatter with trendlines, distribution histograms
+### 📊 Analysis Engine
+- Full EDA — descriptive stats, distributions, outlier detection (IQR), normality tests (Shapiro-Wilk)
+- Correlation analysis — Pearson, Spearman, Kendall matrices with strong-pair detection
+- PCA summary — explained variance, component loadings
+- Data quality scoring (0–100) with issue detection and fix recommendations
+- ANOVA group analysis — categorical vs numeric significance testing
 
-### 📈 Statistical Analysis
-- **Descriptive stats**: mean, median, mode, std, variance, range, IQR
-- **Percentiles**: P1, P5, P10, P25, P50, P75, P90, P95, P99
-- **Normality tests**: Shapiro-Wilk (n≤5000) / D'Agostino-Pearson
-- **Skewness & Kurtosis** analysis
-- **Outlier detection**: IQR fence method
-- **ANOVA group analysis**: categorical vs numeric significance
-- **PCA Summary**: explained variance, loadings
+### 📈 Charts & Visualizations
+- Distribution dashboards (KDE + histogram) — Matplotlib
+- Box plots, violin plots, Q-Q plots — Seaborn
+- Correlation heatmaps — Seaborn diverging palette
+- Scatter matrix / pairplot — Seaborn
+- Interactive scatter plots and distribution charts — Plotly
+- Natural Language to Chart — describe a chart in Hinglish, AI generates it
 
-### 🔍 Data Quality Report
-- Missing value analysis (count + percentage per column)
-- Duplicate row detection
-- Outlier count per column
-- High cardinality detection
-- Skewness flags
-- **Quality Score** (0-100)
-- Actionable recommendations
+### 🤖 AI Features (Groq Llama 3.3 — Free)
+- AI chatbot — ask anything about your data in Hinglish
+- Executive summary — headline finding + key insights with numbers
+- Data story — narrative that tells the story of what the data reveals
+- Action recommendations — immediate actions with impact/effort/timeline
+- Natural language to chart — "sales ka bar chart banao category wise"
 
-### 🔗 Correlation Analysis
-- **Pearson, Spearman, Kendall** matrices
-- Strong pair detection (|r| ≥ 0.5)
-- Color-coded heatmap values
+### 🔮 Machine Learning
+- Regression — Linear, Ridge, Random Forest, Gradient Boosting (auto-compares all 4)
+- Classification — Logistic Regression, Random Forest (auto-detects target type)
+- Clustering — K-Means with auto-elbow detection, silhouette scoring, cluster profiles
+- Forecasting — Linear trend + moving average, next N periods prediction
 
-### ⚙️ Data Transformation
-- Drop duplicates
-- Drop columns
-- Fill missing values (mean/median/mode/zero/ffill/bfill)
-- Normalize columns (Min-Max, Z-Score, Log)
-- Create new computed columns
-- Filter rows (pandas query syntax)
-- Sort by any column
+### ⚙️ Data Operations
+- 8 transform operations: drop columns, fill missing, normalize, create computed columns, filter rows, sort, rename, drop duplicates
+- Supports CSV, TSV, Excel (.xlsx), JSON upload
+- Database connection — MySQL, PostgreSQL, SQLite (via SQLAlchemy)
 
-### 🤖 AI Chatbot (Claude-powered)
-- Answer any question about your data
-- Get statistical insights in Hinglish
-- Request transformations via natural language
-- Auto-applies transforms and re-runs analysis
+### 📤 Export Options
+- PDF Report — multi-page professional report with all stats and charts (ReportLab)
+- PowerPoint — full dark-theme presentation with charts and insights (python-pptx)
+- CSV + Excel export — with formatted headers (xlsxwriter)
+- Email report — PDF sent via SMTP
 
-### 📄 PDF Report
-- Professional multi-page PDF report
-- Dataset overview, all stats, correlations
-- Quality issues + recommendations
-- All charts embedded
-- Generated with ReportLab
+### 👥 Multi-user Support
+- Login/Register system
+- Per-user session isolation
+- No database required — stored in local JSON
 
-### ⬇ Data Export
-- Download transformed data as **CSV**
-- Download as **Excel** (with formatted headers)
-- Download full **PDF analysis report**
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| Backend | Flask, Flask-CORS, Gunicorn |
+| Data Analysis | pandas, numpy, scipy |
+| Machine Learning | scikit-learn |
+| Visualizations | matplotlib, seaborn, plotly |
+| AI/LLM | Groq API (Llama 3.3 70B) — free tier |
+| Reports | ReportLab (PDF), python-pptx (PowerPoint) |
+| Database | SQLAlchemy, PyMySQL, psycopg2 |
+| Frontend | Vanilla JS, CSS (no frameworks) |
+
+---
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repo
+git clone https://github.com/Vaibhavsharma45/Auto_analyst
+cd Auto_analyst
+
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Add your Groq API key (free at console.groq.com)
+# Create .env file:
+echo "GROQ_API_KEY=gsk_your_key_here" > .env
+
+# Run
+python app.py
+```
+
+Open `http://localhost:5000` — login screen will appear automatically.
 
 ---
 
@@ -110,93 +126,51 @@ open http://localhost:5000
 ```
 datamind-pro/
 ├── app.py                          ← Flask entry point
-├── requirements.txt                ← All Python dependencies
-├── .env.example                    ← Environment template
-├── setup.sh                        ← One-time setup
-├── run.sh                          ← Start server
+├── requirements.txt
+├── runtime.txt                     ← Python 3.11 for Render
 │
 ├── backend/
 │   ├── analysis/
-│   │   ├── eda_engine.py           ← Core EDA: all statistics
-│   │   ├── chart_generator.py      ← matplotlib + seaborn + plotly charts
-│   │   └── report_generator.py     ← PDF report (reportlab)
-│   ├── utils/
-│   │   ├── data_loader.py          ← CSV/Excel/JSON loading
-│   │   └── session_store.py        ← In-memory session + transforms
-│   └── routes/
-│       ├── upload_routes.py        ← /api/upload/*
-│       ├── analysis_routes.py      ← /api/analysis/*
-│       ├── chart_routes.py         ← /api/charts/*
-│       ├── report_routes.py        ← /api/report/pdf
-│       └── chat_routes.py          ← /api/chat/message
+│   │   ├── eda_engine.py           ← Full EDA — pandas + scipy
+│   │   ├── chart_generator.py      ← matplotlib + seaborn + plotly
+│   │   ├── ml_engine.py            ← sklearn ML models
+│   │   ├── insights_engine.py      ← AI summaries + recommendations
+│   │   ├── problem_engine.py       ← Goal definition + validation
+│   │   ├── ppt_generator.py        ← PowerPoint generation
+│   │   └── report_generator.py     ← PDF report
+│   ├── routes/                     ← 9 Flask Blueprints
+│   └── utils/                      ← DB, email, auth, session, loader
 │
-├── frontend/
-│   ├── templates/
-│   │   └── index.html              ← Main HTML template
-│   └── static/
-│       ├── css/main.css            ← Dark professional theme
-│       └── js/app.js               ← Full frontend logic
-│
-├── data/
-│   ├── uploads/                    ← Uploaded files stored here
-│   └── samples/                    ← Sample datasets
-│
-└── reports/output/                 ← Generated PDF reports
+└── frontend/
+    ├── templates/index.html
+    └── static/
+        ├── css/main.css
+        └── js/app.js
 ```
 
 ---
 
-## 🔌 API Reference
+## 🌐 Deployment
 
-| Endpoint | Method | Description |
-|---------|--------|-------------|
-| `POST /api/upload/file` | POST | Upload CSV/Excel file |
-| `POST /api/upload/text` | POST | Parse CSV from text |
-| `GET /api/analysis/full/{sid}` | GET | Run full EDA |
-| `GET /api/analysis/overview/{sid}` | GET | Dataset overview only |
-| `GET /api/analysis/preview/{sid}` | GET | First N rows |
-| `POST /api/analysis/transform/{sid}` | POST | Apply transformation |
-| `GET /api/analysis/download/csv/{sid}` | GET | Download as CSV |
-| `GET /api/analysis/download/excel/{sid}` | GET | Download as Excel |
-| `GET /api/charts/all/{sid}` | GET | Generate all charts |
-| `GET /api/charts/image/{sid}/{name}` | GET | Get chart as PNG |
-| `GET /api/report/pdf/{sid}` | GET | Download PDF report |
-| `POST /api/chat/message/{sid}` | POST | Chat with AI |
+Deployed on Render. Add these environment variables in Render dashboard:
 
----
-
-## 🌐 Supported File Formats
-- **CSV** (.csv) — comma, semicolon, pipe, or tab separated
-- **TSV** (.tsv) — tab separated
-- **Excel** (.xlsx, .xls)
-- **JSON** (.json) — array of objects
-- **Text** (.txt) — any delimited format
-
----
-
-## 💬 Chat Examples (Hinglish)
-
-- *"Dataset ka full summary do"*
-- *"Salary column mein kitne outliers hain?"*
-- *"Age aur salary ke beech correlation kitna hai?"*
-- *"Missing values fill kar do median se"*
-- *"Profit margin column create karo: profit / sales * 100"*
-- *"30 se kam age wale employees dikhao"*
-- *"Kaunsa department sabse zyada salary deta hai?"*
-
----
-
-## ⚙️ Configuration (.env)
-
-```env
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-FLASK_ENV=development
-FLASK_DEBUG=1
-SECRET_KEY=your-secret-key
+```
+GROQ_API_KEY = your_groq_key
+SECRET_KEY   = any_random_string
+FLASK_ENV    = production
 ```
 
-> **Note**: Without `ANTHROPIC_API_KEY`, the chatbot falls back to rule-based responses. All analysis and charts work without it.
+---
+
+## 📝 What I Learned Building This
+
+- Integrating multiple Python data science libraries (pandas, scipy, sklearn, seaborn, plotly) into a single web app
+- Building a proper Flask REST API with multiple blueprints
+- Generating professional PDFs and PowerPoints programmatically
+- Working with the Groq API for free LLM inference
+- Handling large file uploads, in-memory session management
+- Building a complete dark-theme UI in vanilla JS without any frontend framework
 
 ---
 
-Made with ❤️ by DataMind Pro — *Powered by Claude AI*
+*Made with ❤️ by Vaibhav Sharma*
