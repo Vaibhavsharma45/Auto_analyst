@@ -7,6 +7,11 @@
   "vaibhav": {
     "password_hash": "e444bd3bca2736f39ca65d53853891a6b0f553b8def766531fbbd6d1b8800521",
     "created": "2026-03-07 20:20:20.886644",
-    "sessions": []
+    "sessions": [
+      {
+        "token": "e7c28d80-4f87-4518-8c98-080a12d91788",
+        "created": "2026-03-07 21:19:26.871062"
+      }
+    ]
   }
 }
