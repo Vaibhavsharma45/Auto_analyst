@@ -3,216 +3,276 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DataMind Pro — AI Data Analyst</title>
+<title>DataMind Pro — Professional Data Analyst</title>
 <link rel="stylesheet" href="/static/css/main.css">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
+<!-- LOADING -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loader-inner">
     <div class="loader-ring"></div>
     <div class="loader-ring ring2"></div>
-    <p id="loadingText">Analyzing...</p>
+    <p id="loadingText">Processing...</p>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="loading-step" id="loadingStep"></div>
   </div>
 </div>
 
 <!-- HEADER -->
 <header>
-  <div class="logo">
-    <div class="logo-mark">⚡</div>
-    <span>Data<em>Mind</em> Pro</span>
+  <div class="logo"><div class="logo-mark">⚡</div><span>Data<em>Mind</em> Pro</span></div>
+  <div class="workflow-progress" id="workflowProgress" style="display:none">
+    <div class="wf-step done" id="wf1" title="Ask the Right Question">1</div>
+    <div class="wf-line"></div>
+    <div class="wf-step done" id="wf2" title="Collect Data">2</div>
+    <div class="wf-line"></div>
+    <div class="wf-step" id="wf3" title="Clean & Transform">3</div>
+    <div class="wf-line"></div>
+    <div class="wf-step" id="wf4" title="Analyze Patterns">4</div>
+    <div class="wf-line"></div>
+    <div class="wf-step" id="wf5" title="Communicate Insights">5</div>
+    <div class="wf-line"></div>
+    <div class="wf-step" id="wf6" title="Recommend Actions">6</div>
   </div>
-  <div class="header-mid" id="datasetBadge" style="display:none">
-    <span class="ds-badge" id="dsLabel">—</span>
-  </div>
-  <div class="header-actions">
-    <span class="version-tag">v2.0 — PANDAS + SEABORN</span>
+  <div class="header-right">
+    <span class="version-tag" id="dsLabel" style="display:none"></span>
     <button class="btn-ghost" id="resetBtn" onclick="resetApp()" style="display:none">↺ Reset</button>
   </div>
 </header>
 
-<!-- APP SHELL -->
-<div class="shell" id="appShell">
+<div class="app-shell" id="appShell">
 
-  <!-- ── UPLOAD SCREEN ──────────────────────────────── -->
-  <div class="screen" id="uploadScreen">
-    <div class="upload-hero">
-      <div class="hero-glow"></div>
-      <div class="hero-content">
-        <div class="hero-icon">🔬</div>
-        <h1>Professional Data Analysis<br><span class="grad-text">Powered by AI + Python</span></h1>
-        <p class="hero-sub">pandas • numpy • seaborn • matplotlib • scipy • sklearn</p>
+  <!-- ══════════════════════════════════════════
+       STEP 1 — ASK THE RIGHT QUESTION
+  ══════════════════════════════════════════ -->
+  <div class="screen active" id="screen-step1">
+    <div class="step-hero">
+      <div class="step-badge">STEP 1 OF 6</div>
+      <h1>Ask the <span class="grad">Right Question</span></h1>
+      <p class="step-sub">Insight without a clear question = wasted effort. Define your goal first.</p>
+    </div>
 
-        <div class="upload-card" id="dropZone">
-          <div class="drop-inner">
-            <div class="drop-icon">🗂️</div>
-            <h3>Drop your dataset here</h3>
-            <p>CSV • TSV • Excel • JSON — up to 100MB</p>
-            <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
-              <span>📂</span> Browse File
-            </button>
-            <input type="file" id="fileInput" accept=".csv,.tsv,.xlsx,.xls,.json,.txt" style="display:none">
-          </div>
+    <div class="goal-grid" id="goalGrid">
+      <div class="goal-card" data-type="sales_performance" onclick="selectGoal(this)">
+        <div class="goal-icon">🛒</div>
+        <h3>Sales Performance</h3>
+        <p>Revenue trends, target achievement, product/region analysis</p>
+      </div>
+      <div class="goal-card" data-type="customer_analysis" onclick="selectGoal(this)">
+        <div class="goal-icon">👥</div>
+        <h3>Customer Analysis</h3>
+        <p>Segmentation, behaviour, churn, lifetime value</p>
+      </div>
+      <div class="goal-card" data-type="hr_workforce" onclick="selectGoal(this)">
+        <div class="goal-icon">🏢</div>
+        <h3>HR / Workforce</h3>
+        <p>Performance, salary, attrition, promotion analysis</p>
+      </div>
+      <div class="goal-card" data-type="financial" onclick="selectGoal(this)">
+        <div class="goal-icon">💰</div>
+        <h3>Financial Analysis</h3>
+        <p>Profit margins, cost analysis, ROI, budget tracking</p>
+      </div>
+      <div class="goal-card" data-type="operations" onclick="selectGoal(this)">
+        <div class="goal-icon">⚙️</div>
+        <h3>Operations</h3>
+        <p>Supply chain, delivery, quality, process optimization</p>
+      </div>
+      <div class="goal-card" data-type="custom" onclick="selectGoal(this)">
+        <div class="goal-icon">🔬</div>
+        <h3>Custom Analysis</h3>
+        <p>Define your own question and analysis approach</p>
+      </div>
+    </div>
+
+    <div class="goal-form" id="goalForm" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Your Business Question <span class="req">*</span></label>
+          <input type="text" id="businessQuestion" placeholder="e.g. Which products are underperforming vs target?">
         </div>
-
-        <div class="divider"><span>or paste CSV data</span></div>
-
-        <div class="paste-box">
-          <textarea id="pasteArea" placeholder="name,age,salary,city&#10;Alice,28,55000,Delhi&#10;Bob,34,72000,Mumbai..."></textarea>
-          <button class="btn-primary" onclick="uploadText()"><span>⚡</span> Analyze</button>
+        <div class="form-group">
+          <label>Who is the audience?</label>
+          <select id="audience">
+            <option value="management">Senior Management</option>
+            <option value="team">Team / Department</option>
+            <option value="client">Client / Stakeholder</option>
+            <option value="self">Self / Personal</option>
+          </select>
         </div>
-
-        <div class="samples-row">
-          <span class="samples-label">Try a sample:</span>
-          <button class="btn-sample" onclick="loadSample('sales')">🛒 Sales</button>
-          <button class="btn-sample" onclick="loadSample('employees')">👥 HR</button>
-          <button class="btn-sample" onclick="loadSample('ecommerce')">📦 E-commerce</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Key Metrics / KPIs to track</label>
+          <input type="text" id="kpiInput" placeholder="e.g. Revenue Growth, Churn Rate, Avg Salary">
         </div>
+        <div class="form-group">
+          <label>Analysis Deadline</label>
+          <select id="deadline">
+            <option value="today">Today</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="no_deadline">No Deadline</option>
+          </select>
+        </div>
+      </div>
+      <div class="suggested-questions" id="suggestedQs"></div>
+      <div class="step-actions">
+        <button class="btn-primary" onclick="saveGoalAndNext()">Continue to Data Collection →</button>
       </div>
     </div>
   </div>
 
-  <!-- ── ANALYSIS SCREEN ───────────────────────────── -->
-  <div class="screen" id="analysisScreen" style="display:none">
+  <!-- ══════════════════════════════════════════
+       STEP 2 — COLLECT DATA
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-step2">
+    <div class="step-hero">
+      <div class="step-badge">STEP 2 OF 6</div>
+      <h1>Collect <span class="grad">Relevant Data</span></h1>
+      <p class="step-sub">Load your dataset — we'll validate it against your stated goal.</p>
+      <div class="goal-reminder" id="goalReminder"></div>
+    </div>
+
+    <div class="upload-area">
+      <div class="upload-card" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="drop-icon">🗂️</div>
+        <h3>Drop your dataset here</h3>
+        <p>CSV • TSV • Excel (.xlsx) • JSON — up to 100MB</p>
+        <button class="btn-primary" onclick="event.stopPropagation()">📂 Browse File</button>
+        <input type="file" id="fileInput" accept=".csv,.tsv,.xlsx,.xls,.json,.txt" style="display:none">
+      </div>
+
+      <div class="divider"><span>or paste CSV data</span></div>
+      <div class="paste-box">
+        <textarea id="pasteArea" placeholder="name,age,salary,city&#10;Alice,28,55000,Delhi&#10;Bob,34,72000,Mumbai..."></textarea>
+        <button class="btn-primary" onclick="uploadText()">⚡ Analyze This Data</button>
+      </div>
+
+      <div class="samples-row">
+        <span>Try a sample:</span>
+        <button class="btn-sample" onclick="loadSample('sales')">🛒 Sales Data</button>
+        <button class="btn-sample" onclick="loadSample('employees')">👥 Employee Data</button>
+        <button class="btn-sample" onclick="loadSample('ecommerce')">📦 E-commerce</button>
+      </div>
+    </div>
+
+    <!-- Validation result shown after upload -->
+    <div id="validationResult" style="display:none"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEPS 3-6 — MAIN ANALYSIS SCREEN
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-analysis" style="display:none">
     <div class="analysis-layout">
 
-      <!-- LEFT NAV -->
+      <!-- SIDE NAV -->
       <nav class="side-nav">
-        <div class="nav-section">
-          <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
-            <span class="nav-icon">🏠</span><span>Overview</span>
-          </div>
-          <div class="nav-item" data-tab="eda" onclick="switchTab('eda')">
-            <span class="nav-icon">📊</span><span>Charts & EDA</span>
-          </div>
-          <div class="nav-item" data-tab="stats" onclick="switchTab('stats')">
-            <span class="nav-icon">📈</span><span>Statistics</span>
-          </div>
-          <div class="nav-item" data-tab="quality" onclick="switchTab('quality')">
-            <span class="nav-icon">🔍</span><span>Data Quality</span>
-          </div>
-          <div class="nav-item" data-tab="correlation" onclick="switchTab('correlation')">
-            <span class="nav-icon">🔗</span><span>Correlations</span>
-          </div>
-          <div class="nav-item" data-tab="transform" onclick="switchTab('transform')">
-            <span class="nav-icon">⚙️</span><span>Transform</span>
-          </div>
-          <div class="nav-item" data-tab="preview" onclick="switchTab('preview')">
-            <span class="nav-icon">📋</span><span>Data Preview</span>
-          </div>
+        <div class="nav-group">
+          <div class="nav-label">WORKFLOW</div>
+          <div class="nav-item active" data-tab="overview"     onclick="switchTab('overview')">    <span>🏠</span> Overview</div>
+          <div class="nav-item"        data-tab="clean"        onclick="switchTab('clean')">       <span>🧹</span> Step 3: Clean</div>
+          <div class="nav-item"        data-tab="analyze"      onclick="switchTab('analyze')">     <span>📊</span> Step 4: Analyze</div>
+          <div class="nav-item"        data-tab="communicate"  onclick="switchTab('communicate')"> <span>📢</span> Step 5: Insights</div>
+          <div class="nav-item"        data-tab="recommend"    onclick="switchTab('recommend')">   <span>🎯</span> Step 6: Actions</div>
         </div>
-        <div class="nav-section nav-bottom">
-          <button class="nav-download" onclick="downloadReport()">📄 PDF Report</button>
-          <button class="nav-download secondary" onclick="downloadCSV()">⬇ Export CSV</button>
-          <button class="nav-download secondary" onclick="downloadExcel()">📊 Export Excel</button>
+        <div class="nav-group">
+          <div class="nav-label">DETAILS</div>
+          <div class="nav-item" data-tab="stats"       onclick="switchTab('stats')">      <span>📈</span> Statistics</div>
+          <div class="nav-item" data-tab="correlation" onclick="switchTab('correlation')"><span>🔗</span> Correlations</div>
+          <div class="nav-item" data-tab="quality"     onclick="switchTab('quality')">    <span>🔍</span> Quality</div>
+          <div class="nav-item" data-tab="preview"     onclick="switchTab('preview')">    <span>📋</span> Data Preview</div>
+        </div>
+        <div class="nav-bottom">
+          <button class="btn-dl" onclick="downloadReport()">📄 PDF Report</button>
+          <button class="btn-dl secondary" onclick="downloadCSV()">⬇ CSV</button>
+          <button class="btn-dl secondary" onclick="downloadExcel()">📊 Excel</button>
         </div>
       </nav>
 
-      <!-- MAIN CONTENT -->
+      <!-- MAIN PANELS -->
       <main class="main-content">
 
-        <!-- OVERVIEW TAB -->
         <div class="tab-panel active" id="panel-overview">
-          <div class="panel-header">
-            <h2>Dataset Overview</h2>
-            <p>Automatic summary of your dataset's shape, types, and health</p>
-          </div>
+          <div class="panel-hdr"><h2>📊 Dataset Overview</h2><p>Your data at a glance</p></div>
           <div id="overviewContent"></div>
         </div>
 
-        <!-- EDA TAB -->
-        <div class="tab-panel" id="panel-eda">
-          <div class="panel-header">
-            <h2>Exploratory Data Analysis</h2>
-            <p>Charts generated with Matplotlib, Seaborn & Plotly</p>
-          </div>
-          <div id="edaContent"></div>
+        <div class="tab-panel" id="panel-clean">
+          <div class="panel-hdr"><h2>🧹 Step 3 — Clean & Transform Data</h2><p>Fix quality issues, engineer features</p></div>
+          <div id="cleanContent"></div>
         </div>
 
-        <!-- STATS TAB -->
+        <div class="tab-panel" id="panel-analyze">
+          <div class="panel-hdr"><h2>📊 Step 4 — Analyze Patterns</h2><p>Charts & EDA — pandas, seaborn, matplotlib, plotly</p></div>
+          <div id="analyzeContent"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-communicate">
+          <div class="panel-hdr"><h2>📢 Step 5 — Communicate Insights</h2><p>AI-generated executive summary & data story</p></div>
+          <div id="communicateContent"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-recommend">
+          <div class="panel-hdr"><h2>🎯 Step 6 — Recommend Actions</h2><p>Insight without action = useless. Here's what to do.</p></div>
+          <div id="recommendContent"></div>
+        </div>
+
         <div class="tab-panel" id="panel-stats">
-          <div class="panel-header">
-            <h2>Statistical Analysis</h2>
-            <p>Descriptive statistics, normality tests, percentiles</p>
-          </div>
+          <div class="panel-hdr"><h2>📈 Statistical Analysis</h2><p>Descriptive stats, percentiles, normality tests</p></div>
           <div id="statsContent"></div>
         </div>
 
-        <!-- QUALITY TAB -->
-        <div class="tab-panel" id="panel-quality">
-          <div class="panel-header">
-            <h2>Data Quality Report</h2>
-            <p>Missing values, outliers, duplicates, and recommendations</p>
-          </div>
-          <div id="qualityContent"></div>
-        </div>
-
-        <!-- CORRELATION TAB -->
         <div class="tab-panel" id="panel-correlation">
-          <div class="panel-header">
-            <h2>Correlation Analysis</h2>
-            <p>Pearson, Spearman, Kendall — all in one place</p>
-          </div>
+          <div class="panel-hdr"><h2>🔗 Correlation Analysis</h2><p>Pearson, Spearman, Kendall matrices</p></div>
           <div id="correlationContent"></div>
         </div>
 
-        <!-- TRANSFORM TAB -->
-        <div class="tab-panel" id="panel-transform">
-          <div class="panel-header">
-            <h2>Data Transformation</h2>
-            <p>Clean, modify, and engineer features</p>
-          </div>
-          <div id="transformContent"></div>
+        <div class="tab-panel" id="panel-quality">
+          <div class="panel-hdr"><h2>🔍 Data Quality Report</h2><p>Missing values, outliers, duplicates</p></div>
+          <div id="qualityContent"></div>
         </div>
 
-        <!-- PREVIEW TAB -->
         <div class="tab-panel" id="panel-preview">
-          <div class="panel-header">
-            <h2>Data Preview</h2>
-            <p>Browse your raw data</p>
-          </div>
+          <div class="panel-hdr"><h2>📋 Data Preview</h2><p>Browse raw data rows</p></div>
           <div id="previewContent"></div>
         </div>
+
       </main>
 
-      <!-- CHAT PANEL -->
+      <!-- CHAT -->
       <aside class="chat-aside">
         <div class="chat-head">
-          <div class="chat-avatar">🤖</div>
-          <div>
-            <strong>DataMind AI</strong>
-            <p class="online-status"><span class="dot"></span> Online</p>
-          </div>
+          <div class="chat-av">🤖</div>
+          <div><strong>DataMind AI</strong><p class="online"><span class="dot"></span>Online</p></div>
         </div>
         <div class="chat-msgs" id="chatMsgs">
           <div class="chat-msg ai-msg">
-            <div class="msg-text">
-              👋 <strong>Namaste!</strong> Main hun aapka AI Data Analyst.<br><br>
-              Data load karo aur mujhse kuch bhi poochho — statistics, insights, transformations, ya koi bhi analysis! 🚀
-            </div>
+            <div class="msg-txt">👋 <strong>Namaste!</strong> Main hun aapka AI Data Analyst.<br><br>
+            Koi bhi sawaal poochho — statistics, insights, transformations, ya recommendations! 🚀</div>
           </div>
         </div>
         <div class="chat-foot">
           <div class="quick-pills" id="quickPills">
             <span class="pill" onclick="sendQuick('Dataset ka full summary do')">📊 Summary</span>
-            <span class="pill" onclick="sendQuick('Missing values kahan hain?')">❓ Missing</span>
-            <span class="pill" onclick="sendQuick('Outliers identify karo aur batao')">⚠️ Outliers</span>
-            <span class="pill" onclick="sendQuick('Strongest correlations kya hain?')">🔗 Correlations</span>
-            <span class="pill" onclick="sendQuick('Data quality issues batao aur fix karne ke suggestions do')">🔍 Quality</span>
+            <span class="pill" onclick="sendQuick('Missing values kahan hain aur kaise fix karu?')">❓ Missing</span>
+            <span class="pill" onclick="sendQuick('Sabse important insights kya hain?')">💡 Insights</span>
+            <span class="pill" onclick="sendQuick('Kya actions lene chahiye is data ke basis pe?')">🎯 Actions</span>
           </div>
-          <div class="chat-input-row">
-            <input type="text" id="chatInput" placeholder="Kuch bhi poochho..." onkeydown="if(event.key==='Enter') sendChat()">
+          <div class="chat-row">
+            <input type="text" id="chatInput" placeholder="Kuch bhi poochho..." onkeydown="if(event.key==='Enter')sendChat()">
             <button class="send-btn" onclick="sendChat()">➤</button>
           </div>
         </div>
       </aside>
     </div>
   </div>
-</div>
+
+</div><!-- /app-shell -->
 
 <script src="/static/js/app.js"></script>
 </body>
