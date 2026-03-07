@@ -634,3 +634,390 @@ function resetApp() {
 // ── INIT ──────────────────────────────────────────
 initStep1();
 
+// ══════════════════════════════════════════════════
+// v3 FEATURES — ML, DB, EMAIL, PPT, NL-TO-CHART
+// ══════════════════════════════════════════════════
+
+// ── ML PANEL ──────────────────────────────────────
+async function renderML() {
+  if(!SESSION_ID){return;}
+  const res = await fetch(`/api/ml/suggestions/${SESSION_ID}`);
+  const data = await res.json();
+  const numCols = data.numeric_cols || [];
+  const catCols = data.categorical_cols || [];
+  const allCols = [...numCols, ...catCols];
+  const numOpts = numCols.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const catOpts = catCols.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const allOpts = allCols.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  document.getElementById('mlContent').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🤖 AI Suggestions</div>
+      ${(data.suggestions||[]).map(s=>`
+        <div style="padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px">${s.description}</span>
+          <button class="btn-sm" style="width:auto;padding:6px 14px" onclick="runMLTask('${s.task}','${s.target||''}')">Run →</button>
+        </div>`).join('')}
+    </div>
+
+    <div class="transform-grid">
+      <div class="transform-card">
+        <h4>📈 Regression</h4>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Predict a numeric value</p>
+        <div class="tf-group"><label>Target Column</label><select id="ml_reg_target">${numOpts}</select></div>
+        <button class="btn-sm" onclick="runRegression()">Run Regression</button>
+        <div class="tf-result" id="ml_reg_res"></div>
+      </div>
+
+      <div class="transform-card">
+        <h4>🏷 Classification</h4>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Predict a category</p>
+        <div class="tf-group"><label>Target Column</label><select id="ml_cls_target">${allOpts}</select></div>
+        <button class="btn-sm" onclick="runClassification()">Run Classification</button>
+        <div class="tf-result" id="ml_cls_res"></div>
+      </div>
+
+      <div class="transform-card">
+        <h4>🔵 Clustering</h4>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Find natural groups (k-means)</p>
+        <div class="tf-group"><label>Number of Clusters (0 = auto)</label><input type="number" id="ml_clus_n" value="0" min="0" max="10"></div>
+        <button class="btn-sm" onclick="runClustering()">Run Clustering</button>
+        <div class="tf-result" id="ml_clus_res"></div>
+      </div>
+
+      <div class="transform-card">
+        <h4>🔮 Forecasting</h4>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Predict future values</p>
+        <div class="tf-group"><label>Target Column</label><select id="ml_fc_target">${numOpts}</select></div>
+        <div class="tf-group"><label>Forecast Periods</label><input type="number" id="ml_fc_periods" value="6" min="1" max="24"></div>
+        <button class="btn-sm" onclick="runForecasting()">Run Forecast</button>
+        <div class="tf-result" id="ml_fc_res"></div>
+      </div>
+    </div>
+
+    <div id="mlResultFull"></div>`;
+}
+
+async function runMLTask(task, target) {
+  if(task==='regression') { document.getElementById('ml_reg_target').value=target; runRegression(); }
+  else if(task==='classification') { document.getElementById('ml_cls_target').value=target; runClassification(); }
+  else if(task==='forecasting') { document.getElementById('ml_fc_target').value=target; runForecasting(); }
+  else if(task==='clustering') { runClustering(); }
+}
+
+async function runRegression() {
+  const target = document.getElementById('ml_reg_target').value;
+  setMLLoading('ml_reg_res','Running regression models...');
+  const res = await fetch(`/api/ml/regression/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+  const data = await res.json();
+  showMLResult(data, 'ml_reg_res');
+}
+
+async function runClassification() {
+  const target = document.getElementById('ml_cls_target').value;
+  setMLLoading('ml_cls_res','Training classifiers...');
+  const res = await fetch(`/api/ml/classification/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+  const data = await res.json();
+  showMLResult(data, 'ml_cls_res');
+}
+
+async function runClustering() {
+  const n = parseInt(document.getElementById('ml_clus_n').value)||null;
+  setMLLoading('ml_clus_res','Finding clusters...');
+  const res = await fetch(`/api/ml/clustering/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n_clusters:n||null})});
+  const data = await res.json();
+  showMLResult(data, 'ml_clus_res');
+}
+
+async function runForecasting() {
+  const target = document.getElementById('ml_fc_target').value;
+  const periods = parseInt(document.getElementById('ml_fc_periods').value)||6;
+  setMLLoading('ml_fc_res','Forecasting...');
+  const res = await fetch(`/api/ml/forecasting/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,periods})});
+  const data = await res.json();
+  showMLForecast(data);
+}
+
+function setMLLoading(id,msg){const el=document.getElementById(id);el.style.display='block';el.className='tf-result';el.textContent=msg;}
+
+function showMLResult(data, resId) {
+  const el = document.getElementById(resId);
+  if(data.error){el.className='tf-result err';el.style.display='block';el.textContent='❌ '+data.error;return;}
+  el.style.display='block';el.className='tf-result ok';
+
+  if(data.task==='regression'){
+    let html=`✅ Best: ${data.best_model} (R²=${data.best_r2})\n`;
+    Object.entries(data.model_results||{}).forEach(([m,r])=>{
+      if(!r.error) html+=`  ${m}: R²=${r.r2}, RMSE=${r.rmse}\n`;
+    });
+    el.textContent=html;
+    renderFeatureImportance(data);
+  } else if(data.task==='classification'){
+    el.textContent=`✅ Best: ${data.best_model} — ${data.best_accuracy}% accuracy`;
+    renderFeatureImportance(data);
+  } else if(data.task==='clustering'){
+    el.textContent=`✅ ${data.n_clusters} clusters found. Silhouette=${data.silhouette_score} (${data.quality})`;
+    renderClusterProfiles(data);
+  }
+}
+
+function renderFeatureImportance(data) {
+  const imp = data.feature_importance;
+  if(!imp || Object.keys(imp).length===0) return;
+  const container = document.getElementById('mlResultFull');
+  const entries = Object.entries(imp).slice(0,8);
+  const max = entries[0][1];
+  container.innerHTML += `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">📊 Feature Importance — ${data.target}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${data.interpretation||''}</div>
+      ${entries.map(([col,val])=>`
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span class="c-accent">${col}</span><span class="mono">${val}</span>
+          </div>
+          <div class="fill-bar"><div class="fill-bar-inner" style="width:${(val/max*100).toFixed(0)}%"></div></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderClusterProfiles(data) {
+  const profiles = data.cluster_profiles || {};
+  const container = document.getElementById('mlResultFull');
+  container.innerHTML += `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">🔵 Cluster Profiles</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${data.interpretation||''}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        ${Object.entries(profiles).map(([name,p],i)=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+            <div style="font-weight:700;color:var(--accent);margin-bottom:6px">${name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${p.size} records (${p.pct}%)</div>
+            ${Object.entries(p.means||{}).map(([col,val])=>`<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${col}</span><span class="mono">${val}</span></div>`).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function showMLForecast(data) {
+  const el = document.getElementById('ml_fc_res');
+  if(data.error){el.className='tf-result err';el.style.display='block';el.textContent='❌ '+data.error;return;}
+  el.style.display='block';el.className='tf-result ok';
+  el.textContent=`✅ ${data.trend_direction} | R²=${data.r2_score}`;
+
+  const container = document.getElementById('mlResultFull');
+  const forecast = data.forecast||[];
+  container.innerHTML += `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">🔮 Forecast: ${data.target}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${data.interpretation}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${forecast.map((v,i)=>`<div style="background:var(--surface);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:12px;text-align:center;min-width:80px"><div style="font-size:10px;color:var(--muted)">Period ${i+1}</div><div class="c-accent" style="font-size:20px;font-weight:800">${v}</div></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── NL TO CHART ────────────────────────────────────
+async function renderNLChart() {
+  document.getElementById('nlChartContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">🖼️ Natural Language to Chart</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Hinglish mein bolo — AI chart bana dega!</p>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <input type="text" id="nlInput" placeholder="e.g. 'sales ka bar chart banao' or 'scatter plot age vs salary'" style="flex:1;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:Syne,sans-serif;font-size:13px;outline:none">
+        <button class="btn-primary" onclick="generateNLChart()">Generate Chart ⚡</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        <span class="pill" onclick="setNL('bar chart banao category wise sales')">📊 Category bar</span>
+        <span class="pill" onclick="setNL('scatter plot banao')">🔵 Scatter plot</span>
+        <span class="pill" onclick="setNL('pie chart distribution dikhao')">🥧 Pie chart</span>
+        <span class="pill" onclick="setNL('histogram banao pehle numeric column ka')">📉 Histogram</span>
+        <span class="pill" onclick="setNL('line chart trend dikhao')">📈 Line trend</span>
+      </div>
+      <div id="nlChartResult"></div>
+    </div>`;
+}
+
+function setNL(text){document.getElementById('nlInput').value=text;}
+
+async function generateNLChart() {
+  const req = document.getElementById('nlInput').value.trim();
+  if(!req){alert('Kuch toh likho!');return;}
+  const res_el = document.getElementById('nlChartResult');
+  res_el.innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">⚙️ Generating chart...</div>';
+  try {
+    const res = await fetch(`/api/extras/nl-chart/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:req})});
+    const data = await res.json();
+    if(data.error){res_el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
+    res_el.innerHTML=`
+      <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Type: <strong class="c-accent">${data.spec?.chart_type}</strong> | X: <strong>${data.spec?.x_col||'—'}</strong> | Y: <strong>${data.spec?.y_col||'—'}</strong></div>
+      <img src="${data.chart}" style="width:100%;border-radius:8px">`;
+  } catch(e){res_el.innerHTML=`<div style="color:var(--red)">Error: ${e.message}</div>`;}
+}
+
+// ── DB CONNECT ─────────────────────────────────────
+function renderDBConnect() {
+  document.getElementById('dbContent').innerHTML = `
+    <div class="card">
+      <div class="card-title">🗄️ Database Connection</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="tf-group"><label>Database Type</label>
+          <select id="db_type" onchange="toggleDBFields()">
+            <option value="sqlite">SQLite (local file)</option>
+            <option value="mysql">MySQL</option>
+            <option value="postgresql">PostgreSQL</option>
+          </select>
+        </div>
+        <div class="tf-group" id="db_host_group"><label>Host</label><input type="text" id="db_host" value="localhost"></div>
+      </div>
+      <div id="db_auth_fields" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="tf-group"><label>Port</label><input type="number" id="db_port" value="3306"></div>
+        <div class="tf-group"><label>Database</label><input type="text" id="db_name" placeholder="mydb"></div>
+        <div class="tf-group"><label>Username</label><input type="text" id="db_user" value="root"></div>
+        <div class="tf-group"><label>Password</label><input type="password" id="db_pass"></div>
+      </div>
+      <div id="db_sqlite_fields" style="display:none;margin-bottom:16px">
+        <div class="tf-group"><label>SQLite File Path</label><input type="text" id="db_path" placeholder="C:/path/to/database.db"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" onclick="testDBConnection()">🔌 Test Connection</button>
+        <button class="btn-primary" onclick="loadDBTables()" style="background:linear-gradient(135deg,var(--green),#059669)">📋 Load Tables</button>
+      </div>
+      <div id="db_result" style="margin-top:12px"></div>
+      <div id="db_tables" style="margin-top:12px"></div>
+    </div>`;
+}
+
+function toggleDBFields(){
+  const t=document.getElementById('db_type').value;
+  document.getElementById('db_auth_fields').style.display=t==='sqlite'?'none':'grid';
+  document.getElementById('db_sqlite_fields').style.display=t==='sqlite'?'block':'none';
+  if(t==='postgresql') document.getElementById('db_port').value='5432';
+  else if(t==='mysql') document.getElementById('db_port').value='3306';
+}
+
+function getDBConfig(){
+  const t=document.getElementById('db_type').value;
+  if(t==='sqlite') return {path:document.getElementById('db_path').value||':memory:'};
+  return {host:document.getElementById('db_host').value,port:parseInt(document.getElementById('db_port').value),
+    database:document.getElementById('db_name').value,user:document.getElementById('db_user').value,
+    password:document.getElementById('db_pass').value};
+}
+
+async function testDBConnection(){
+  const res=await fetch('/api/extras/db/test',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
+  const data=await res.json();
+  const el=document.getElementById('db_result');
+  el.innerHTML=`<div style="padding:10px;border-radius:8px;font-size:13px;background:${data.success?'rgba(63,185,80,.08)':'rgba(248,81,73,.08)'};border:1px solid ${data.success?'var(--green)':'var(--red)'};">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
+}
+
+async function loadDBTables(){
+  const res=await fetch('/api/extras/db/tables',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
+  const data=await res.json();
+  if(!data.success){document.getElementById('db_tables').innerHTML=`<p style="color:var(--red)">${data.error}</p>`;return;}
+  document.getElementById('db_tables').innerHTML=`
+    <div class="card-title" style="margin-top:8px">Tables Found (${data.tables.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${data.tables.map(t=>`<button class="btn-sample" onclick="loadDBTable('${t}')">${t}</button>`).join('')}
+    </div>`;
+}
+
+async function loadDBTable(table){
+  showLoading(`Loading table: ${table}`,20,'Reading from database...');
+  const res=await fetch('/api/extras/db/load',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig(),table})});
+  const data=await res.json();
+  if(data.error){hideLoading();alert('Error: '+data.error);return;}
+  await runFullPipeline(data.session_id, data.filename);
+}
+
+// ── EMAIL REPORT ────────────────────────────────────
+function renderEmailSection() {
+  return `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📧 Email Report</div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div class="tf-group" style="flex:1;margin:0">
+          <label>Email Address</label>
+          <input type="email" id="emailAddr" placeholder="recipient@example.com">
+        </div>
+        <button class="btn-primary" onclick="sendEmail()">📤 Send PDF Report</button>
+      </div>
+      <div id="emailResult" style="margin-top:10px"></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+        ⚙️ Configure in .env: EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_SMTP, EMAIL_PORT
+      </div>
+    </div>`;
+}
+
+async function sendEmail(){
+  const email=document.getElementById('emailAddr').value.trim();
+  if(!email){alert('Email address enter karo!');return;}
+  const el=document.getElementById('emailResult');
+  el.innerHTML='<span style="color:var(--muted)">📤 Sending...</span>';
+  const res=await fetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const data=await res.json();
+  el.innerHTML=`<div style="font-size:13px;color:${data.success?'var(--green)':'var(--red)'}">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
+}
+
+// ── LOGIN/REGISTER ──────────────────────────────────
+async function checkAuth(){
+  try {
+    const res=await fetch('/api/auth/me',{credentials:'include'});
+    const data=await res.json();
+    if(data.logged_in){
+      document.getElementById('userBadge').textContent='👤 '+data.username;
+      document.getElementById('userBadge').style.display='inline-block';
+      document.getElementById('loginBtn').style.display='none';
+    }
+  } catch(e){}
+}
+
+async function showLoginModal(){
+  const modal=document.getElementById('loginModal');
+  modal.style.display='flex';
+}
+
+function hideLoginModal(){document.getElementById('loginModal').style.display='none';}
+
+async function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const res=await fetch('/api/auth/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+  const data=await res.json();
+  if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
+  else document.getElementById('loginError').textContent=data.error;
+}
+
+async function doRegister(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const res=await fetch('/api/auth/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+  const data=await res.json();
+  if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
+  else document.getElementById('loginError').textContent=data.error;
+}
+
+async function doLogout(){
+  await fetch('/api/auth/logout',{method:'POST',credentials:'include'});
+  document.getElementById('userBadge').style.display='none';
+  document.getElementById('loginBtn').style.display='inline-flex';
+}
+
+// Hook into switchTab to render ML/NL/DB on demand
+const _origSwitchTab = switchTab;
+function switchTab(tab) {
+  _origSwitchTab(tab);
+  if(tab==='ml' && SESSION_ID) renderML();
+  if(tab==='nlchart' && SESSION_ID) renderNLChart();
+  if(tab==='dbconnect') renderDBConnect();
+}
+
+// Check auth on load
+checkAuth();
+
+function downloadPPT() {
+  if(SESSION_ID){ addChatMsg('ai','📽️ Generating PowerPoint...'); window.location.href='/api/extras/ppt/'+SESSION_ID; }
+}
