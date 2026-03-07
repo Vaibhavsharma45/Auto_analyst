@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataMind Pro — AI Data Analyst</title>
+<link rel="stylesheet" href="/static/css/main.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader-inner">
+    <div class="loader-ring"></div>
+    <div class="loader-ring ring2"></div>
+    <p id="loadingText">Analyzing...</p>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">⚡</div>
+    <span>Data<em>Mind</em> Pro</span>
+  </div>
+  <div class="header-mid" id="datasetBadge" style="display:none">
+    <span class="ds-badge" id="dsLabel">—</span>
+  </div>
+  <div class="header-actions">
+    <span class="version-tag">v2.0 — PANDAS + SEABORN</span>
+    <button class="btn-ghost" id="resetBtn" onclick="resetApp()" style="display:none">↺ Reset</button>
+  </div>
+</header>
+
+<!-- APP SHELL -->
+<div class="shell" id="appShell">
+
+  <!-- ── UPLOAD SCREEN ──────────────────────────────── -->
+  <div class="screen" id="uploadScreen">
+    <div class="upload-hero">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="hero-icon">🔬</div>
+        <h1>Professional Data Analysis<br><span class="grad-text">Powered by AI + Python</span></h1>
+        <p class="hero-sub">pandas • numpy • seaborn • matplotlib • scipy • sklearn</p>
+
+        <div class="upload-card" id="dropZone">
+          <div class="drop-inner">
+            <div class="drop-icon">🗂️</div>
+            <h3>Drop your dataset here</h3>
+            <p>CSV • TSV • Excel • JSON — up to 100MB</p>
+            <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+              <span>📂</span> Browse File
+            </button>
+            <input type="file" id="fileInput" accept=".csv,.tsv,.xlsx,.xls,.json,.txt" style="display:none">
+          </div>
+        </div>
+
+        <div class="divider"><span>or paste CSV data</span></div>
+
+        <div class="paste-box">
+          <textarea id="pasteArea" placeholder="name,age,salary,city&#10;Alice,28,55000,Delhi&#10;Bob,34,72000,Mumbai..."></textarea>
+          <button class="btn-primary" onclick="uploadText()"><span>⚡</span> Analyze</button>
+        </div>
+
+        <div class="samples-row">
+          <span class="samples-label">Try a sample:</span>
+          <button class="btn-sample" onclick="loadSample('sales')">🛒 Sales</button>
+          <button class="btn-sample" onclick="loadSample('employees')">👥 HR</button>
+          <button class="btn-sample" onclick="loadSample('ecommerce')">📦 E-commerce</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYSIS SCREEN ───────────────────────────── -->
+  <div class="screen" id="analysisScreen" style="display:none">
+    <div class="analysis-layout">
+
+      <!-- LEFT NAV -->
+      <nav class="side-nav">
+        <div class="nav-section">
+          <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+            <span class="nav-icon">🏠</span><span>Overview</span>
+          </div>
+          <div class="nav-item" data-tab="eda" onclick="switchTab('eda')">
+            <span class="nav-icon">📊</span><span>Charts & EDA</span>
+          </div>
+          <div class="nav-item" data-tab="stats" onclick="switchTab('stats')">
+            <span class="nav-icon">📈</span><span>Statistics</span>
+          </div>
+          <div class="nav-item" data-tab="quality" onclick="switchTab('quality')">
+            <span class="nav-icon">🔍</span><span>Data Quality</span>
+          </div>
+          <div class="nav-item" data-tab="correlation" onclick="switchTab('correlation')">
+            <span class="nav-icon">🔗</span><span>Correlations</span>
+          </div>
+          <div class="nav-item" data-tab="transform" onclick="switchTab('transform')">
+            <span class="nav-icon">⚙️</span><span>Transform</span>
+          </div>
+          <div class="nav-item" data-tab="preview" onclick="switchTab('preview')">
+            <span class="nav-icon">📋</span><span>Data Preview</span>
+          </div>
+        </div>
+        <div class="nav-section nav-bottom">
+          <button class="nav-download" onclick="downloadReport()">📄 PDF Report</button>
+          <button class="nav-download secondary" onclick="downloadCSV()">⬇ Export CSV</button>
+          <button class="nav-download secondary" onclick="downloadExcel()">📊 Export Excel</button>
+        </div>
+      </nav>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content">
+
+        <!-- OVERVIEW TAB -->
+        <div class="tab-panel active" id="panel-overview">
+          <div class="panel-header">
+            <h2>Dataset Overview</h2>
+            <p>Automatic summary of your dataset's shape, types, and health</p>
+          </div>
+          <div id="overviewContent"></div>
+        </div>
+
+        <!-- EDA TAB -->
+        <div class="tab-panel" id="panel-eda">
+          <div class="panel-header">
+            <h2>Exploratory Data Analysis</h2>
+            <p>Charts generated with Matplotlib, Seaborn & Plotly</p>
+          </div>
+          <div id="edaContent"></div>
+        </div>
+
+        <!-- STATS TAB -->
+        <div class="tab-panel" id="panel-stats">
+          <div class="panel-header">
+            <h2>Statistical Analysis</h2>
+            <p>Descriptive statistics, normality tests, percentiles</p>
+          </div>
+          <div id="statsContent"></div>
+        </div>
+
+        <!-- QUALITY TAB -->
+        <div class="tab-panel" id="panel-quality">
+          <div class="panel-header">
+            <h2>Data Quality Report</h2>
+            <p>Missing values, outliers, duplicates, and recommendations</p>
+          </div>
+          <div id="qualityContent"></div>
+        </div>
+
+        <!-- CORRELATION TAB -->
+        <div class="tab-panel" id="panel-correlation">
+          <div class="panel-header">
+            <h2>Correlation Analysis</h2>
+            <p>Pearson, Spearman, Kendall — all in one place</p>
+          </div>
+          <div id="correlationContent"></div>
+        </div>
+
+        <!-- TRANSFORM TAB -->
+        <div class="tab-panel" id="panel-transform">
+          <div class="panel-header">
+            <h2>Data Transformation</h2>
+            <p>Clean, modify, and engineer features</p>
+          </div>
+          <div id="transformContent"></div>
+        </div>
+
+        <!-- PREVIEW TAB -->
+        <div class="tab-panel" id="panel-preview">
+          <div class="panel-header">
+            <h2>Data Preview</h2>
+            <p>Browse your raw data</p>
+          </div>
+          <div id="previewContent"></div>
+        </div>
+      </main>
+
+      <!-- CHAT PANEL -->
+      <aside class="chat-aside">
+        <div class="chat-head">
+          <div class="chat-avatar">🤖</div>
+          <div>
+            <strong>DataMind AI</strong>
+            <p class="online-status"><span class="dot"></span> Online</p>
+          </div>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+          <div class="chat-msg ai-msg">
+            <div class="msg-text">
+              👋 <strong>Namaste!</strong> Main hun aapka AI Data Analyst.<br><br>
+              Data load karo aur mujhse kuch bhi poochho — statistics, insights, transformations, ya koi bhi analysis! 🚀
+            </div>
+          </div>
+        </div>
+        <div class="chat-foot">
+          <div class="quick-pills" id="quickPills">
+            <span class="pill" onclick="sendQuick('Dataset ka full summary do')">📊 Summary</span>
+            <span class="pill" onclick="sendQuick('Missing values kahan hain?')">❓ Missing</span>
+            <span class="pill" onclick="sendQuick('Outliers identify karo aur batao')">⚠️ Outliers</span>
+            <span class="pill" onclick="sendQuick('Strongest correlations kya hain?')">🔗 Correlations</span>
+            <span class="pill" onclick="sendQuick('Data quality issues batao aur fix karne ke suggestions do')">🔍 Quality</span>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Kuch bhi poochho..." onkeydown="if(event.key==='Enter') sendChat()">
+            <button class="send-btn" onclick="sendChat()">➤</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
