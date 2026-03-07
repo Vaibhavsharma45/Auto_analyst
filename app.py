@@ -24,10 +24,10 @@ from backend.routes.auth_routes     import auth_bp
 def create_app():
     app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
     app.config.update(
-        UPLOAD_FOLDER="data/uploads",
-        REPORTS_FOLDER="reports/output",
+        UPLOAD_FOLDER=os.getenv("UPLOAD_FOLDER", "data/uploads"),
+        REPORTS_FOLDER=os.getenv("REPORTS_FOLDER", "reports/output"),
         MAX_CONTENT_LENGTH=100*1024*1024,
-        SECRET_KEY=os.getenv("SECRET_KEY","datamind-v3-secret-key"),
+        SECRET_KEY=os.getenv("SECRET_KEY", "datamind-v3-secret-key"),
         SESSION_COOKIE_SAMESITE="Lax"
     )
     CORS(app, supports_credentials=True)
@@ -52,7 +52,9 @@ def create_app():
 
     return app
 
+# For gunicorn — must be module-level
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     print("\n⚡ DataMind Pro v3 → http://localhost:5000\n")
     app.run(debug=True, host="0.0.0.0", port=5000)
