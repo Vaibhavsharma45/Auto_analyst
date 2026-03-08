@@ -1,3 +1,12 @@
+---
+title: DataMind Pro
+emoji: ⚡
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+app_port: 7860
+---
 # ⚡ DataMind Pro — AI-Powered Data Analysis Platform
 
 > A full-stack data analyst in your browser. Upload any dataset and get professional EDA, statistical analysis, ML predictions, AI-generated insights, and actionable recommendations — all in one place.
