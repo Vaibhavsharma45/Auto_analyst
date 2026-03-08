@@ -20,9 +20,7 @@ let GOAL_TEMPLATES = {};
 
 // ─── GLOBAL SESSION EXPIRY HANDLER ─────────────────
 async function safeFetch(url, options={}) {
-  // Ensure absolute URL
-  var fullUrl = (url.startsWith('http') || url.startsWith('//')) ? url : BASE_URL + url;
-  const res = await fetch(fullUrl, options);
+  const res = await fetch(url, options);
   // Only trigger expiry if: session exists AND url contains session ID AND is a data API
   const isDataApi = url.includes('/api/analysis/') || url.includes('/api/charts/') ||
                     url.includes('/api/ml/') || url.includes('/api/workflow/executive') ||
