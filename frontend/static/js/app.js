@@ -118,10 +118,10 @@ async function initStep1() {
   try {
     const res = await fetch('/api/workflow/goals');
     if(res.ok) {
-      GOAL_TEMPLATES = await res.json();
+      const data = await res.json();
+      if(data && typeof data === 'object') GOAL_TEMPLATES = data;
     }
-  } catch(e) { console.warn('Goals load failed, using defaults'); }
-  // Ensure GOAL_TEMPLATES is always an object
+  } catch(e) { console.warn('Goals load failed:', e.message); }
   if(!GOAL_TEMPLATES || typeof GOAL_TEMPLATES !== 'object') GOAL_TEMPLATES = {};
   setWfStep(1);
 }
@@ -157,7 +157,7 @@ function selectGoal(card) {
 
 function saveGoalAndNext() {
   const q = document.getElementById('businessQuestion').value.trim();
-  if(!q){ alert('Please enter your business question!'); return; }
+  if(!q){ showErrorBanner('Please enter your business question!'); return; }
   CURRENT_GOAL.question = q;
   CURRENT_GOAL.label = document.querySelector('.goal-card.selected h3')?.textContent || 'Custom Analysis';
   CURRENT_GOAL.kpis = document.getElementById('kpiInput').value.split(',').map(k=>k.trim()).filter(Boolean);
@@ -186,21 +186,21 @@ async function uploadFile(file) {
   try {
     const res = await fetch('/api/upload/file',{method:'POST',body:fd});
     const data = await res.json();
-    if(data.error){hideLoading();alert('Upload error: '+data.error);return;}
+    if(data.error){hideLoading();showErrorBanner('Upload error: ' + data.error);return;}
     await runFullPipeline(data.session_id, data.filename);
-  } catch(e){hideLoading();alert('Network error. Is the Flask server running?\n'+e.message);}
+  } catch(e){hideLoading();showErrorBanner('Network error: ' + e.message);}
 }
 
 async function uploadText() {
   const text = document.getElementById('pasteArea').value.trim();
-  if(!text){alert('Please paste some CSV data!');return;}
+  if(!text){showErrorBanner('Please paste some CSV data!');return;}
   showLoading('Parsing CSV...', 15, 'Detecting separator...');
   try {
     const res = await fetch('/api/upload/text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
     const data = await res.json();
-    if(data.error){hideLoading();alert('Parse error: '+data.error);return;}
+    if(data.error){hideLoading();showErrorBanner('Parse error: ' + data.error);return;}
     await runFullPipeline(data.session_id, data.filename);
-  } catch(e){hideLoading();alert('Network error: '+e.message);}
+  } catch(e){hideLoading();showErrorBanner('Network error: ' + e.message);}
 }
 
 function loadSample(type) {
@@ -927,7 +927,7 @@ function setNL(text){document.getElementById('nlInput').value=text;}
 
 async function generateNLChart() {
   const req = document.getElementById('nlInput').value.trim();
-  if(!req){alert('Kuch toh likho!');return;}
+  if(!req){showErrorBanner('Kuch toh type karo!');return;}
   const res_el = document.getElementById('nlChartResult');
   res_el.innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">⚙️ Generating chart...</div>';
   try {
@@ -1014,7 +1014,7 @@ async function loadDBTable(table){
   const res=await fetch('/api/extras/db/load',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig(),table})});
   const data=await res.json();
-  if(data.error){hideLoading();alert('Error: '+data.error);return;}
+  if(data.error){hideLoading();showErrorBanner('Error: ' + data.error);return;}
   await runFullPipeline(data.session_id, data.filename);
 }
 
@@ -1039,7 +1039,7 @@ function renderEmailSection() {
 
 async function sendEmail(){
   const email=document.getElementById('emailAddr').value.trim();
-  if(!email){alert('Email address enter karo!');return;}
+  if(!email){showErrorBanner('Email address enter karo!');return;}
   const el=document.getElementById('emailResult');
   el.innerHTML='<span style="color:var(--muted)">📤 Sending...</span>';
   const res=await safeFetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
