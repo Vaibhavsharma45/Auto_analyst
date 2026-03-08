@@ -13,40 +13,10 @@ let CHAT_HISTORY = [];
 let CURRENT_GOAL = {};
 let GOAL_TEMPLATES = {};
 
-// ─── BASE URL FIX — HuggingFace iframe ──────────────
-// HF runs app in iframe at huggingface.co but API is at *.hf.space
-// We intercept fetch to fix relative /api/ calls
-(function() {
-  var _originalFetch = window.fetch;
-  window.fetch = function(url, opts) {
-    if(typeof url === 'string' && url.startsWith('/api/')) {
-      // Detect HF space URL from current page URL
-      // HF embeds as iframe: src="https://xxx-yyy.hf.space"
-      var hfSpace = '';
-      try {
-        var iframes = window.parent.document.querySelectorAll('iframe');
-        for(var i=0;i<iframes.length;i++){
-          var src = iframes[i].src || '';
-          if(src.includes('.hf.space')) { hfSpace = src.split('/').slice(0,3).join('/'); break; }
-        }
-      } catch(e) {}
-      // If we couldn't get from parent, try meta tag
-      if(!hfSpace) {
-        try {
-          var m = document.querySelector('meta[name="space-host"]');
-          if(m) hfSpace = 'https://' + m.content;
-        } catch(e) {}
-      }
-      // Last resort: construct from known pattern if on HF
-      if(!hfSpace && (window.location.hostname.includes('huggingface.co') || window.location.hostname.includes('.hf.space'))) {
-        // We're already on hf.space - use current origin
-        hfSpace = window.location.origin;
-      }
-      if(hfSpace) url = hfSpace + url;
-    }
-    return _originalFetch.call(window, url, opts);
-  };
-})();
+// ─── BASE URL FIX — HuggingFace ─────────────────────
+// When app runs at vaibhavsharma45-datamind-pro.hf.space
+// relative /api/ calls work fine — no interceptor needed
+// This is a no-op kept for reference
 
 // ─── GLOBAL SESSION EXPIRY HANDLER ─────────────────
 async function safeFetch(url, options={}) {
