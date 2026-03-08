@@ -99,10 +99,12 @@ function hideLoading() { setTimeout(()=>document.getElementById('loadingOverlay'
 
 // ─── WORKFLOW STEPS UI ─────────────────────────────
 function setWfStep(n) {
-  document.getElementById('workflowProgress').style.display='flex';
-  for(let i=1;i<=6;i++){
-    const el=document.getElementById('wf'+i);
-    el.className='wf-step'+(i<n?' done':i===n?' active':'');
+  var wp=document.getElementById('workflowProgress');
+  if(wp) wp.style.display='flex';
+  for(var i=1;i<=6;i++){
+    var el=document.getElementById('wf'+i);
+    if(!el) continue;
+    el.className='wf-step'+(i<n?' done':(i===n?' active':''));
   }
 }
 function showScreen(id) {
@@ -211,6 +213,8 @@ function loadSample(type) {
 // ──── FULL ANALYSIS PIPELINE ───────────────────────
 async function runFullPipeline(sessionId, filename) {
   SESSION_ID = sessionId;
+  // Save to sessionStorage for tab refresh resilience
+  try { sessionStorage.setItem('dm_session', sessionId); sessionStorage.setItem('dm_file', filename); } catch(e){}
 
   // Save goal to session
   if(CURRENT_GOAL.question) {
@@ -266,13 +270,28 @@ Kuch bhi poochho — main taiyaar hun! 🚀`);
 }
 
 async function fetchAnalysis() {
-  try {
-    const res = await safeFetch(`/api/analysis/full/${SESSION_ID}`);
-    if(!res.ok){ hideLoading(); showErrorBanner('Server error ' + res.status + ' — please try again.'); return null; }
-    const data = await res.json();
-    if(!data || !data.overview){ hideLoading(); showErrorBanner('Analysis empty — server may be low on memory. Try a smaller dataset.'); return null; }
-    return data;
-  } catch(e){ hideLoading(); showErrorBanner('Analysis failed: ' + e.message); return null; }
+  for(var attempt = 1; attempt <= 2; attempt++) {
+    try {
+      if(attempt === 2) {
+        setProgress(40, 'Retrying analysis...', 'Second attempt...');
+        await new Promise(function(r){ setTimeout(r, 2000); });
+      }
+      var res = await safeFetch('/api/analysis/full/' + SESSION_ID);
+      if(!res.ok){
+        if(attempt === 2){ hideLoading(); showErrorBanner('Server error ' + res.status + ' — please re-upload dataset.'); return null; }
+        continue;
+      }
+      var data = await res.json();
+      if(!data || !data.overview){
+        if(attempt === 2){ hideLoading(); showErrorBanner('Analysis returned empty — try re-uploading.'); return null; }
+        continue;
+      }
+      return data;
+    } catch(e){
+      if(attempt === 2){ hideLoading(); showErrorBanner('Analysis failed: ' + e.message); return null; }
+    }
+  }
+  return null;
 }
 
 async function fetchCharts() {
@@ -1114,7 +1133,10 @@ function downloadPPT() {
   if(SESSION_ID){ addChatMsg('ai','📽️ Generating PowerPoint...'); window.location.href='/api/extras/ppt/'+SESSION_ID; }
 }
 
-// ─── KEEP ALIVE — ping server every 14 min to prevent Render sleep ───
-setInterval(async () => {
+// ─── KEEP ALIVE — ping server + session every 8 min ───
+setInterval(async function() {
   try { await fetch('/api/auth/me', {credentials:'include'}); } catch(e) {}
-}, 14 * 60 * 1000);
+  try {
+    if(SESSION_ID) await fetch('/api/analysis/full/' + SESSION_ID + '?ping=1');
+  } catch(e) {}
+}, 8 * 60 * 1000);
