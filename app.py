@@ -45,10 +45,14 @@ def create_app():
     app.register_blueprint(extras_bp,   url_prefix="/api/extras")
     app.register_blueprint(auth_bp,     url_prefix="/api/auth")
 
-    from flask import render_template
+    from flask import render_template, jsonify
     @app.route("/")
     def index():
         return render_template("index.html")
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"})
 
     return app
 

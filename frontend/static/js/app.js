@@ -13,6 +13,32 @@ let CHAT_HISTORY = [];
 let CURRENT_GOAL = {};
 let GOAL_TEMPLATES = {};
 
+// ─── GLOBAL SESSION EXPIRY HANDLER ─────────────────
+async function safeFetch(url, options={}) {
+  const res = await fetch(url, options);
+  if(res.status === 404 && SESSION_ID && url.includes(SESSION_ID)) {
+    if(!window._expiredShown) {
+      window._expiredShown = true;
+      showExpiredBanner();
+    }
+  }
+  return res;
+}
+
+function showExpiredBanner() {
+  document.getElementById('expiredBanner')?.remove();
+  const b = document.createElement('div');
+  b.id = 'expiredBanner';
+  b.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:5000;background:linear-gradient(135deg,#d29922,#f59e0b);color:#000;padding:14px 24px;text-align:center;font-family:Syne,sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+  b.innerHTML = '<span>⚠️ Server restart hua — session expire ho gaya. Data dobara upload karo.</span><button onclick="document.getElementById('expiredBanner').remove();window._expiredShown=false;resetApp()" style="padding:7px 18px;border-radius:8px;border:none;background:#000;color:#fff;font-family:Syne,sans-serif;font-weight:700;cursor:pointer;font-size:13px">↺ Reset</button>';
+  document.body.appendChild(b);
+  setTimeout(()=>{
+    document.getElementById('expiredBanner')?.remove();
+    window._expiredShown=false;
+    resetApp();
+  }, 10000);
+}
+
 // ─── SAMPLE DATA ───────────────────────────────────
 const SAMPLES = {
   sales: `month,product,category,sales,units,profit,region,target\nJan,Laptop,Electronics,145000,29,42000,North,130000\nJan,Phone,Electronics,89000,89,22000,South,80000\nJan,Shoes,Apparel,34000,113,9000,East,40000\nFeb,Laptop,Electronics,167000,33,48000,North,150000\nFeb,Phone,Electronics,95000,95,24000,West,90000\nFeb,Shoes,Apparel,41000,136,11000,South,38000\nMar,Laptop,Electronics,139000,27,40000,East,145000\nMar,TV,Electronics,78000,15,18000,North,75000\nMar,Shirt,Apparel,28000,140,7000,West,30000\nApr,Phone,Electronics,103000,103,26000,North,95000\nApr,Laptop,Electronics,188000,37,55000,South,170000\nApr,TV,Electronics,92000,18,21000,East,88000\nMay,Shoes,Apparel,52000,173,14000,North,48000\nMay,Laptop,Electronics,172000,34,50000,West,160000\nMay,Phone,Electronics,110000,110,28000,South,100000\nJun,TV,Electronics,101000,19,23000,North,95000\nJun,Shirt,Apparel,35000,175,9000,East,32000\nJun,Laptop,Electronics,195000,39,57000,West,180000`,
@@ -187,14 +213,14 @@ Kuch bhi poochho — main taiyaar hun! 🚀`);
 
 async function fetchAnalysis() {
   try {
-    const res = await fetch(`/api/analysis/full/${SESSION_ID}`);
+    const res = await safeFetch(`/api/analysis/full/${SESSION_ID}`);
     return await res.json();
   } catch(e){hideLoading();alert('Analysis failed: '+e.message);return null;}
 }
 
 async function fetchCharts() {
   try {
-    const res = await fetch(`/api/charts/all/${SESSION_ID}`);
+    const res = await safeFetch(`/api/charts/all/${SESSION_ID}`);
     const data = await res.json();
     AVAILABLE_CHARTS = data.available_charts || [];
   } catch(e){console.error('Charts:',e);}
@@ -292,7 +318,7 @@ async function runTransform(op, params, resId) {
   const el=document.getElementById(resId);
   el.style.display='block'; el.className='tf-result'; el.textContent='Running...';
   try {
-    const res=await fetch(`/api/analysis/transform/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:op,params})});
+    const res=await safeFetch(`/api/analysis/transform/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:op,params})});
     const data=await res.json();
     if(data.success){
       el.className='tf-result ok'; el.textContent=`✅ Done! ${data.original_shape[0]}×${data.original_shape[1]} → ${data.new_shape[0]}×${data.new_shape[1]}`;
@@ -339,7 +365,7 @@ function renderAnalyze() {
 
 async function loadPlotlyChart(id, name) {
   try {
-    const res=await fetch(`/api/charts/image/${SESSION_ID}/${name}`);
+    const res=await safeFetch(`/api/charts/image/${SESSION_ID}/${name}`);
     const data=await res.json();
     Plotly.newPlot(id,data.data,data.layout,{responsive:true,displayModeBar:true});
   } catch(e){console.error('Plotly:',e);}
@@ -425,7 +451,7 @@ async function generateRecommendations() {
   btn.disabled=true;
   setWfStep(6);
   try {
-    const res=await fetch(`/api/workflow/recommendations/${SESSION_ID}`);
+    const res=await safeFetch(`/api/workflow/recommendations/${SESSION_ID}`);
     const data=await res.json();
     renderRecommendResult(data);
   } catch(e){
@@ -560,7 +586,7 @@ function renderCorrelation() {
 // ── PREVIEW ───────────────────────────────────────────
 async function renderPreview() {
   try {
-    const res=await fetch(`/api/analysis/preview/${SESSION_ID}?n=100`);
+    const res=await safeFetch(`/api/analysis/preview/${SESSION_ID}?n=100`);
     const data=await res.json();
     const cols=data.columns||[], rows=data.data||[];
     document.getElementById('previewContent').innerHTML=`
@@ -594,7 +620,7 @@ async function sendChat() {
   addChatMsg('user',msg); showTyping();
   if(!SESSION_ID){hideTyping();addChatMsg('ai','⚠️ Pehle data load karo!');return;}
   try {
-    const res=await fetch(`/api/chat/message/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:CHAT_HISTORY.slice(-8)})});
+    const res=await safeFetch(`/api/chat/message/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:CHAT_HISTORY.slice(-8)})});
     const data=await res.json(); hideTyping();
     const reply=data.reply||'Sorry, kuch error aayi.';
     addChatMsg('ai',fmtMsg(reply));
@@ -641,7 +667,7 @@ initStep1();
 // ── ML PANEL ──────────────────────────────────────
 async function renderML() {
   if(!SESSION_ID){return;}
-  const res = await fetch(`/api/ml/suggestions/${SESSION_ID}`);
+  const res = await safeFetch(`/api/ml/suggestions/${SESSION_ID}`);
   const data = await res.json();
   const numCols = data.numeric_cols || [];
   const catCols = data.categorical_cols || [];
@@ -708,7 +734,7 @@ async function runMLTask(task, target) {
 async function runRegression() {
   const target = document.getElementById('ml_reg_target').value;
   setMLLoading('ml_reg_res','Running regression models...');
-  const res = await fetch(`/api/ml/regression/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+  const res = await safeFetch(`/api/ml/regression/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
   const data = await res.json();
   showMLResult(data, 'ml_reg_res');
 }
@@ -716,7 +742,7 @@ async function runRegression() {
 async function runClassification() {
   const target = document.getElementById('ml_cls_target').value;
   setMLLoading('ml_cls_res','Training classifiers...');
-  const res = await fetch(`/api/ml/classification/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+  const res = await safeFetch(`/api/ml/classification/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
   const data = await res.json();
   showMLResult(data, 'ml_cls_res');
 }
@@ -724,7 +750,7 @@ async function runClassification() {
 async function runClustering() {
   const n = parseInt(document.getElementById('ml_clus_n').value)||null;
   setMLLoading('ml_clus_res','Finding clusters...');
-  const res = await fetch(`/api/ml/clustering/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n_clusters:n||null})});
+  const res = await safeFetch(`/api/ml/clustering/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n_clusters:n||null})});
   const data = await res.json();
   showMLResult(data, 'ml_clus_res');
 }
@@ -733,7 +759,7 @@ async function runForecasting() {
   const target = document.getElementById('ml_fc_target').value;
   const periods = parseInt(document.getElementById('ml_fc_periods').value)||6;
   setMLLoading('ml_fc_res','Forecasting...');
-  const res = await fetch(`/api/ml/forecasting/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,periods})});
+  const res = await safeFetch(`/api/ml/forecasting/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,periods})});
   const data = await res.json();
   showMLForecast(data);
 }
@@ -846,7 +872,7 @@ async function generateNLChart() {
   const res_el = document.getElementById('nlChartResult');
   res_el.innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">⚙️ Generating chart...</div>';
   try {
-    const res = await fetch(`/api/extras/nl-chart/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:req})});
+    const res = await safeFetch(`/api/extras/nl-chart/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:req})});
     const data = await res.json();
     if(data.error){res_el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
     res_el.innerHTML=`
@@ -957,7 +983,7 @@ async function sendEmail(){
   if(!email){alert('Email address enter karo!');return;}
   const el=document.getElementById('emailResult');
   el.innerHTML='<span style="color:var(--muted)">📤 Sending...</span>';
-  const res=await fetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const res=await safeFetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
   const data=await res.json();
   el.innerHTML=`<div style="font-size:13px;color:${data.success?'var(--green)':'var(--red)'}">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
 }
@@ -1028,3 +1054,8 @@ checkAuth();
 function downloadPPT() {
   if(SESSION_ID){ addChatMsg('ai','📽️ Generating PowerPoint...'); window.location.href='/api/extras/ppt/'+SESSION_ID; }
 }
+
+// ─── KEEP ALIVE — ping server every 14 min to prevent Render sleep ───
+setInterval(async () => {
+  try { await fetch('/api/auth/me', {credentials:'include'}); } catch(e) {}
+}, 14 * 60 * 1000);
