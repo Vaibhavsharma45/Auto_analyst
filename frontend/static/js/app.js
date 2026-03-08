@@ -16,7 +16,13 @@ let GOAL_TEMPLATES = {};
 // ─── GLOBAL SESSION EXPIRY HANDLER ─────────────────
 async function safeFetch(url, options={}) {
   const res = await fetch(url, options);
-  if(res.status === 404 && SESSION_ID && url.includes(SESSION_ID)) {
+  // Only trigger expiry if: session exists AND url contains session ID AND is a data API
+  const isDataApi = url.includes('/api/analysis/') || url.includes('/api/charts/') ||
+                    url.includes('/api/ml/') || url.includes('/api/workflow/executive') ||
+                    url.includes('/api/workflow/data-story') || url.includes('/api/workflow/recommendations') ||
+                    url.includes('/api/extras/') || url.includes('/api/report/') ||
+                    url.includes('/api/chat/');
+  if(res.status === 404 && SESSION_ID && url.includes(SESSION_ID) && isDataApi) {
     if(!window._expiredShown) {
       window._expiredShown = true;
       showExpiredBanner();
@@ -93,25 +99,42 @@ function showScreen(id) {
 async function initStep1() {
   try {
     const res = await fetch('/api/workflow/goals');
-    GOAL_TEMPLATES = await res.json();
+    if(res.ok) {
+      GOAL_TEMPLATES = await res.json();
+    }
   } catch(e) { console.warn('Goals load failed, using defaults'); }
+  // Ensure GOAL_TEMPLATES is always an object
+  if(!GOAL_TEMPLATES || typeof GOAL_TEMPLATES !== 'object') GOAL_TEMPLATES = {};
   setWfStep(1);
 }
 
 function selectGoal(card) {
-  document.querySelectorAll('.goal-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('.goal-card').forEach(function(c){ c.classList.remove('selected'); });
   card.classList.add('selected');
-  const type = card.dataset.type;
+  var type = card.dataset.type;
   CURRENT_GOAL.type = type;
-  const tmpl = GOAL_TEMPLATES[type] || {};
+  var tmpl = (GOAL_TEMPLATES && GOAL_TEMPLATES[type]) ? GOAL_TEMPLATES[type] : {};
   document.getElementById('goalForm').style.display = 'block';
-  // Show suggested questions
-  const qs = tmpl.questions || [];
-  const qsHtml = qs.length ? `<div class="sug-label">Suggested questions:</div>${qs.map(q=>`<span class="sug-q" onclick="document.getElementById('businessQuestion').value='${q}'">${q}</span>`).join('')}` : '';
-  document.getElementById('suggestedQs').innerHTML = qsHtml;
-  // Pre-fill KPIs
-  if(tmpl.kpis) document.getElementById('kpiInput').value = tmpl.kpis.join(', ');
-  document.getElementById('goalForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+  var qs = tmpl.questions || [];
+  var sqEl = document.getElementById('suggestedQs');
+  sqEl.innerHTML = '';
+  if(qs.length) {
+    var lbl = document.createElement('div');
+    lbl.className = 'sug-label';
+    lbl.textContent = 'Suggested questions:';
+    sqEl.appendChild(lbl);
+    qs.forEach(function(q) {
+      var sp = document.createElement('span');
+      sp.className = 'sug-q';
+      sp.textContent = q;
+      (function(question){ sp.onclick = function(){ document.getElementById('businessQuestion').value = question; }; })(q);
+      sqEl.appendChild(sp);
+    });
+  }
+  if(tmpl.kpis && Array.isArray(tmpl.kpis)) {
+    document.getElementById('kpiInput').value = tmpl.kpis.join(', ');
+  }
+  document.getElementById('goalForm').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
 function saveGoalAndNext() {
