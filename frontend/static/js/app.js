@@ -58,6 +58,24 @@ function showExpiredBanner() {
   }, 10000);
 }
 
+function showErrorBanner(msg) {
+  var old = document.getElementById("errorBanner");
+  if(old) old.remove();
+  var b = document.createElement("div");
+  b.id = "errorBanner";
+  b.style.cssText = "position:fixed;top:56px;left:0;right:0;z-index:5000;background:linear-gradient(135deg,#f85149,#c0392b);color:#fff;padding:12px 24px;text-align:center;font-family:Syne,sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.4)";
+  var span = document.createElement("span");
+  span.textContent = "❌ " + msg;
+  var btn = document.createElement("button");
+  btn.textContent = "✕";
+  btn.style.cssText = "padding:4px 12px;border-radius:6px;border:none;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;font-size:13px";
+  btn.onclick = function() { document.getElementById("errorBanner").remove(); };
+  b.appendChild(span);
+  b.appendChild(btn);
+  document.body.appendChild(b);
+  setTimeout(function() { var el = document.getElementById("errorBanner"); if(el) el.remove(); }, 8000);
+}
+
 // ─── SAMPLE DATA ───────────────────────────────────
 const SAMPLES = {
   sales: `month,product,category,sales,units,profit,region,target\nJan,Laptop,Electronics,145000,29,42000,North,130000\nJan,Phone,Electronics,89000,89,22000,South,80000\nJan,Shoes,Apparel,34000,113,9000,East,40000\nFeb,Laptop,Electronics,167000,33,48000,North,150000\nFeb,Phone,Electronics,95000,95,24000,West,90000\nFeb,Shoes,Apparel,41000,136,11000,South,38000\nMar,Laptop,Electronics,139000,27,40000,East,145000\nMar,TV,Electronics,78000,15,18000,North,75000\nMar,Shirt,Apparel,28000,140,7000,West,30000\nApr,Phone,Electronics,103000,103,26000,North,95000\nApr,Laptop,Electronics,188000,37,55000,South,170000\nApr,TV,Electronics,92000,18,21000,East,88000\nMay,Shoes,Apparel,52000,173,14000,North,48000\nMay,Laptop,Electronics,172000,34,50000,West,160000\nMay,Phone,Electronics,110000,110,28000,South,100000\nJun,TV,Electronics,101000,19,23000,North,95000\nJun,Shirt,Apparel,35000,175,9000,East,32000\nJun,Laptop,Electronics,195000,39,57000,West,180000`,
@@ -250,16 +268,20 @@ Kuch bhi poochho — main taiyaar hun! 🚀`);
 async function fetchAnalysis() {
   try {
     const res = await safeFetch(`/api/analysis/full/${SESSION_ID}`);
-    return await res.json();
-  } catch(e){hideLoading();alert('Analysis failed: '+e.message);return null;}
+    if(!res.ok){ hideLoading(); showErrorBanner('Server error ' + res.status + ' — please try again.'); return null; }
+    const data = await res.json();
+    if(!data || !data.overview){ hideLoading(); showErrorBanner('Analysis empty — server may be low on memory. Try a smaller dataset.'); return null; }
+    return data;
+  } catch(e){ hideLoading(); showErrorBanner('Analysis failed: ' + e.message); return null; }
 }
 
 async function fetchCharts() {
   try {
     const res = await safeFetch(`/api/charts/all/${SESSION_ID}`);
+    if(!res.ok){ console.warn('Charts failed:', res.status); AVAILABLE_CHARTS = []; return; }
     const data = await res.json();
-    AVAILABLE_CHARTS = data.available_charts || [];
-  } catch(e){console.error('Charts:',e);}
+    AVAILABLE_CHARTS = (data && data.available_charts) ? data.available_charts : [];
+  } catch(e){ console.warn('Charts error:', e.message); AVAILABLE_CHARTS = []; }
 }
 
 // ══════════════════════════════════════════════════
@@ -280,6 +302,7 @@ function renderAll(filename) {
 
 // ── OVERVIEW ────────────────────────────────────────
 function renderOverview() {
+  if(!ANALYSIS_DATA) { document.getElementById('overviewContent').innerHTML='<div class="card"><p style="color:var(--muted)">Analysis data not available. Please re-upload your dataset.</p></div>'; return; }
   const a=ANALYSIS_DATA, ov=a.overview||{}, sh=ov.shape||{}, mis=ov.missing||{}, dup=ov.duplicates||{}, ct=ov.column_types||{}, qr=a.quality_report||{};
   const sc=qr.quality_score||0, scC=sc>=80?'c-green':sc>=60?'c-orange':'c-red';
   document.getElementById('overviewContent').innerHTML=`
