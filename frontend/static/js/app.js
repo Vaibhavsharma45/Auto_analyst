@@ -30,7 +30,7 @@ function showExpiredBanner() {
   const b = document.createElement('div');
   b.id = 'expiredBanner';
   b.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:5000;background:linear-gradient(135deg,#d29922,#f59e0b);color:#000;padding:14px 24px;text-align:center;font-family:Syne,sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-  b.innerHTML = '<span>⚠️ Server restart hua — session expire ho gaya. Data dobara upload karo.</span><button onclick="document.getElementById('expiredBanner').remove();window._expiredShown=false;resetApp()" style="padding:7px 18px;border-radius:8px;border:none;background:#000;color:#fff;font-family:Syne,sans-serif;font-weight:700;cursor:pointer;font-size:13px">↺ Reset</button>';
+  b.innerHTML = `<span>⚠️ Server restart hua — session expire ho gaya. Data dobara upload karo.</span><button onclick="document.getElementById('expiredBanner').remove();window._expiredShown=false;resetApp()" style="padding:7px 18px;border-radius:8px;border:none;background:#000;color:#fff;font-family:Syne,sans-serif;font-weight:700;cursor:pointer;font-size:13px">↺ Reset</button>`;
   document.body.appendChild(b);
   setTimeout(()=>{
     document.getElementById('expiredBanner')?.remove();
