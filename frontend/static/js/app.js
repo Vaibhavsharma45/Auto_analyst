@@ -5,6 +5,14 @@
  * Step 5: Communicate | Step 6: Recommend
  */
 
+// ─── BACKEND URL — Render pe deploy hoga ───────────
+// Local: empty string (same origin)
+// Production: Render URL
+const BACKEND_URL = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1'
+  ? ''  // local — same origin
+  : 'https://datamind-pro-backend.onrender.com';  // CHANGE THIS to your Render URL
+
 // ─── STATE ─────────────────────────────────────────
 let SESSION_ID = null;
 let ANALYSIS_DATA = null;
@@ -18,50 +26,12 @@ let GOAL_TEMPLATES = {};
 // relative /api/ calls work fine — no interceptor needed
 // This is a no-op kept for reference
 
-// ─── GLOBAL SESSION EXPIRY HANDLER ─────────────────
+// ─── SAFE FETCH — uses BACKEND_URL ──────────────
 async function safeFetch(url, options={}) {
-  const res = await fetch(url, options);
-  // Only trigger expiry if: session exists AND url contains session ID AND is a data API
-  const isDataApi = url.includes('/api/analysis/') || url.includes('/api/charts/') ||
-                    url.includes('/api/ml/') || url.includes('/api/workflow/executive') ||
-                    url.includes('/api/workflow/data-story') || url.includes('/api/workflow/recommendations') ||
-                    url.includes('/api/extras/') || url.includes('/api/report/') ||
-                    url.includes('/api/chat/');
-  if(res.status === 404 && SESSION_ID && url.includes(SESSION_ID) && isDataApi) {
-    if(!window._expiredShown) {
-      window._expiredShown = true;
-      showExpiredBanner();
-    }
-  }
-  return res;
+  const fullUrl = url.startsWith('/api/') ? BACKEND_URL + url : url;
+  return await fetch(fullUrl, options);
 }
 
-function showExpiredBanner() {
-  var old = document.getElementById("expiredBanner");
-  if(old) old.remove();
-  var b = document.createElement("div");
-  b.id = "expiredBanner";
-  b.style.cssText = "position:fixed;top:56px;left:0;right:0;z-index:5000;background:linear-gradient(135deg,#d29922,#f59e0b);color:#000;padding:14px 24px;text-align:center;font-family:Syne,sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)";
-  var span = document.createElement("span");
-  span.textContent = "Server restart hua — session expire ho gaya. Data dobara upload karo.";
-  var btn = document.createElement("button");
-  btn.textContent = "Reset";
-  btn.style.cssText = "padding:7px 18px;border-radius:8px;border:none;background:#000;color:#fff;font-family:Syne,sans-serif;font-weight:700;cursor:pointer;font-size:13px";
-  btn.onclick = function() {
-    document.getElementById("expiredBanner").remove();
-    window._expiredShown = false;
-    resetApp();
-  };
-  b.appendChild(span);
-  b.appendChild(btn);
-  document.body.appendChild(b);
-  setTimeout(function() {
-    var el = document.getElementById("expiredBanner");
-    if(el) el.remove();
-    window._expiredShown = false;
-    resetApp();
-  }, 10000);
-}
 
 function showErrorBanner(msg) {
   var old = document.getElementById("errorBanner");
@@ -123,7 +93,7 @@ function showScreen(id) {
 // ══════════════════════════════════════════════════
 async function initStep1() {
   try {
-    const res = await fetch('/api/workflow/goals');
+    const res = await safeFetch('/api/workflow/goals');
     if(res.ok) {
       const data = await res.json();
       if(data && typeof data === 'object') GOAL_TEMPLATES = data;
@@ -191,7 +161,7 @@ async function uploadFile(file) {
   showLoading('Uploading file...', 15, 'Reading file bytes...');
   const fd = new FormData(); fd.append('file', file);
   try {
-    const res = await fetch('/api/upload/file', {method:'POST',body:fd});
+    const res = await safeFetch('/api/upload/file', {method:'POST',body:fd});
     const data = await res.json();
     if(data.error){hideLoading();showErrorBanner('Upload error: ' + data.error);return;}
     await runFullPipeline(data.session_id, data.filename);
@@ -203,7 +173,7 @@ async function uploadText() {
   if(!text){showErrorBanner('Please paste some CSV data!');return;}
   showLoading('Parsing CSV...', 15, 'Detecting separator...');
   try {
-    const res = await fetch('/api/upload/text', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const res = await safeFetch('/api/upload/text', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
     const data = await res.json();
     if(data.error){hideLoading();showErrorBanner('Parse error: ' + data.error);return;}
     await runFullPipeline(data.session_id, data.filename);
@@ -223,7 +193,7 @@ async function runFullPipeline(sessionId, filename) {
 
   // Save goal to session
   if(CURRENT_GOAL.question) {
-    await fetch(`/api/workflow/set-goal/${sessionId}`, {
+    await safeFetch(`/api/workflow/set-goal/${sessionId}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify(CURRENT_GOAL)
     });
@@ -233,7 +203,7 @@ async function runFullPipeline(sessionId, filename) {
   // Validate data for goal
   let validation = null;
   try {
-    const vRes = await fetch(`/api/workflow/validate/${sessionId}`, {
+    const vRes = await safeFetch(`/api/workflow/validate/${sessionId}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({goal_type: CURRENT_GOAL.type||'custom'})
     });
@@ -470,8 +440,8 @@ async function generateInsights() {
   setWfStep(5);
   try {
     const [sumRes, storyRes] = await Promise.all([
-      fetch(`/api/workflow/executive-summary/${SESSION_ID}`),
-      fetch(`/api/workflow/data-story/${SESSION_ID}`)
+      safeFetch(`/api/workflow/executive-summary/${SESSION_ID}`),
+      safeFetch(`/api/workflow/data-story/${SESSION_ID}`)
     ]);
     const summary=await sumRes.json();
     const story=await storyRes.json();
@@ -1014,14 +984,14 @@ function getDBConfig(){
 }
 
 async function testDBConnection(){
-  const res=await fetch('/api/extras/db/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
+  const res=await safeFetch('/api/extras/db/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
   const data=await res.json();
   const el=document.getElementById('db_result');
   el.innerHTML=`<div style="padding:10px;border-radius:8px;font-size:13px;background:${data.success?'rgba(63,185,80,.08)':'rgba(248,81,73,.08)'};border:1px solid ${data.success?'var(--green)':'var(--red)'};">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
 }
 
 async function loadDBTables(){
-  const res=await fetch('/api/extras/db/tables',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
+  const res=await safeFetch('/api/extras/db/tables',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
   const data=await res.json();
   if(!data.success){document.getElementById('db_tables').innerHTML=`<p style="color:var(--red)">${data.error}</p>`;return;}
   document.getElementById('db_tables').innerHTML=`
@@ -1033,7 +1003,7 @@ async function loadDBTables(){
 
 async function loadDBTable(table){
   showLoading(`Loading table: ${table}`,20,'Reading from database...');
-  const res=await fetch('/api/extras/db/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig(),table})});
+  const res=await safeFetch('/api/extras/db/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig(),table})});
   const data=await res.json();
   if(data.error){hideLoading();showErrorBanner('Error: ' + data.error);return;}
   await runFullPipeline(data.session_id, data.filename);
@@ -1071,7 +1041,7 @@ async function sendEmail(){
 // ── LOGIN/REGISTER ──────────────────────────────────
 async function checkAuth(){
   try {
-    const res=await fetch('/api/auth/me', {credentials:'include'});
+    const res=await safeFetch('/api/auth/me', {credentials:'include'});
     const data=await res.json();
     if(data.logged_in){
       document.getElementById('userBadge').textContent='👤 '+data.username;
@@ -1096,7 +1066,7 @@ function hideLoginModal(){document.getElementById('loginModal').style.display='n
 async function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
-  const res=await fetch('/api/auth/login', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+  const res=await safeFetch('/api/auth/login', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
   const data=await res.json();
   if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
   else document.getElementById('loginError').textContent=data.error;
@@ -1105,14 +1075,14 @@ async function doLogin(){
 async function doRegister(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
-  const res=await fetch('/api/auth/register', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+  const res=await safeFetch('/api/auth/register', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
   const data=await res.json();
   if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
   else document.getElementById('loginError').textContent=data.error;
 }
 
 async function doLogout(){
-  await fetch('/api/auth/logout', {method:'POST',credentials:'include'});
+  await safeFetch('/api/auth/logout', {method:'POST',credentials:'include'});
   document.getElementById('userBadge').style.display='none';
   document.getElementById('loginBtn').style.display='inline-flex';
 }
@@ -1137,7 +1107,7 @@ function downloadPPT() {
 
 // ─── KEEP ALIVE — ping server + session every 8 min ───
 setInterval(async function() {
-  try { await fetch('/api/auth/me', {credentials:'include'}); } catch(e) {}
+  try { await safeFetch('/api/auth/me', {credentials:'include'}); } catch(e) {}
   try {
     if(SESSION_ID) await fetch(api('/api/analysis/full/' + SESSION_ID + '?ping=1'));
   } catch(e) {}

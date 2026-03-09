@@ -30,7 +30,12 @@ def create_app():
         SECRET_KEY=os.getenv("SECRET_KEY", "datamind-v3-secret-key"),
         SESSION_COOKIE_SAMESITE="Lax"
     )
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True, origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000", 
+    "https://*.vercel.app",
+    "https://*.onrender.com"
+])
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     os.makedirs(app.config["REPORTS_FOLDER"], exist_ok=True)
     os.makedirs("data", exist_ok=True)
