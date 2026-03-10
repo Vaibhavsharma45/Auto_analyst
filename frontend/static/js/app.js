@@ -1245,130 +1245,70 @@ async function showLoginModal(){
 function hideLoginModal(){document.getElementById('loginModal').style.display='none';}
 
 async function doLogin(){
-  const u=document.getElementById('loginUser').value.trim();
-  const p=document.getElementById('loginPass').value;
-  const res=await safeFetch('/api/auth/login', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-  const data = await safeJson(res);
-  if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
-  else document.getElementById('loginError').textContent=data.error;
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  document.getElementById('loginError').innerHTML = '';
+
+  // Client-side validation
+  if(!username){ document.getElementById('errUsername').textContent='Username is required.'; return; }
+  if(!password){ document.getElementById('errPassword').textContent='Password is required.'; return; }
+
+  setAuthLoading(true);
+  try {
+    const r = await safeJson(await safeFetch('/api/auth/login',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    }));
+    if(!r){ setAuthError('Server error. Please try again.'); return; }
+    if(!r.success){ setAuthError(r.error || 'Login failed.'); return; }
+    localStorage.setItem('dm_user', r.username);
+    localStorage.setItem('dm_token', r.token);
+    hideLoginModal();
+    const badge = document.getElementById('userBadge');
+    if(badge){ badge.textContent=`👤 ${r.username}`; badge.style.display='inline-block'; }
+    const lb = document.getElementById('loginBtn');
+    if(lb) lb.style.display='none';
+  } catch(e){ setAuthError('Connection error: ' + e.message); }
+  finally { setAuthLoading(false); }
 }
 
 async function doRegister(){
-  const u=document.getElementById('loginUser').value.trim();
-  const p=document.getElementById('loginPass').value;
-  const res=await safeFetch('/api/auth/register', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-  const data = await safeJson(res);
-  if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
-  else document.getElementById('loginError').textContent=data.error;
-}
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  document.getElementById('loginError').innerHTML = '';
 
-async function doGuest(){
-  hideLoginModal();
-  document.getElementById('userBadge').textContent='👤 Guest';
-  document.getElementById('userBadge').style.display='inline-block';
-  document.getElementById('loginBtn').style.display='none';
-}
+  // Client-side validation
+  let hasErr = false;
+  if(!username || username.length < 3){
+    document.getElementById('errUsername').textContent = 'Username must be at least 3 characters.';
+    hasErr = true;
+  } else if(!/^[a-zA-Z0-9_]+$/.test(username)){
+    document.getElementById('errUsername').textContent = 'Only letters, numbers, underscores allowed.';
+    hasErr = true;
+  } else { document.getElementById('errUsername').textContent = ''; }
 
+  const passRules = [/.{8,}/,/[A-Z]/,/[a-z]/,/\d/,/[!@#$%^&*(),.?":{}|<>_\-]/];
+  const passScore = passRules.filter(r => r.test(password)).length;
+  if(passScore < 4){
+    document.getElementById('errPassword').textContent = 'Password does not meet requirements.';
+    hasErr = true;
+  } else { document.getElementById('errPassword').textContent = ''; }
 
-// ─── SAMPLE DATASETS ────────────────────────────────
-const SAMPLE_DATASETS = {
-  sales: `month,product,category,sales,units,profit,region,target
-Jan,Laptop,Electronics,145000,29,42000,North,130000
-Jan,Phone,Electronics,89000,89,22000,South,80000
-Jan,Shoes,Apparel,34000,113,9000,East,40000
-Feb,Laptop,Electronics,167000,33,48000,North,150000
-Feb,Phone,Electronics,95000,95,24000,West,90000
-Feb,Shoes,Apparel,41000,136,11000,South,38000
-Mar,Laptop,Electronics,139000,27,40000,East,145000
-Mar,TV,Electronics,78000,15,18000,North,75000
-Mar,Shoes,Apparel,38000,126,10000,West,42000
-Apr,Phone,Electronics,103000,103,26000,North,95000
-Apr,Laptop,Electronics,188000,37,55000,South,170000
-Apr,TV,Electronics,92000,17,21000,East,88000
-May,Laptop,Electronics,172000,34,50000,West,160000
-May,Phone,Electronics,118000,118,30000,North,110000
-Jun,TV,Electronics,101000,19,23000,North,95000
-Jun,Laptop,Electronics,195000,39,57000,West,180000`,
+  if(hasErr) return;
 
-  hr: `id,name,department,age,salary,experience,rating,city,gender,promoted
-E001,Rahul Sharma,Engineering,28,75000,4,4.2,Delhi,M,No
-E002,Priya Patel,Marketing,32,65000,7,4.5,Mumbai,F,Yes
-E003,Amit Kumar,Engineering,35,92000,10,4.8,Bangalore,M,Yes
-E004,Sneha Gupta,HR,27,48000,3,3.9,Delhi,F,No
-E005,Vikram Singh,Engineering,30,82000,6,4.3,Hyderabad,M,No
-E006,Anita Joshi,Marketing,29,60000,5,4.1,Pune,F,No
-E007,Rajesh Verma,Finance,40,110000,15,4.6,Mumbai,M,Yes
-E008,Kavita Mehta,Engineering,26,68000,2,3.8,Bangalore,F,No
-E009,Suresh Nair,HR,33,52000,8,4.0,Chennai,M,No
-E010,Deepa Reddy,Finance,37,98000,12,4.7,Hyderabad,F,Yes
-E011,Karan Shah,Engineering,31,85000,7,4.4,Delhi,M,No
-E012,Meera Iyer,Finance,34,88000,9,4.2,Chennai,F,Yes
-E013,Nitin Jain,Marketing,36,72000,11,4.3,Mumbai,M,Yes
-E014,Pooja Desai,Engineering,24,58000,1,3.7,Pune,F,No
-E015,Rohit Mishra,HR,38,56000,13,4.1,Delhi,M,No`,
-
-  ecommerce: `order_id,product,category,price,qty,discount,rating,delivery_days,returned
-ORD001,Wireless Earbuds,Electronics,2499,1,10,4.3,3,No
-ORD002,Cotton Kurta,Clothing,899,2,5,4.1,5,No
-ORD003,Python Book,Books,599,1,0,4.7,4,No
-ORD004,Running Shoes,Footwear,3499,1,15,3.9,6,Yes
-ORD005,Bluetooth Speaker,Electronics,1999,1,8,4.5,3,No
-ORD006,Smart Watch,Electronics,8999,1,12,4.6,3,Yes
-ORD007,Yoga Mat,Sports,1499,1,0,4.4,5,No
-ORD008,Formal Shoes,Footwear,2999,1,5,4.2,7,No
-ORD009,Jeans,Clothing,1299,1,10,4.0,5,No
-ORD010,Cricket Bat,Sports,2999,1,5,4.6,7,No
-ORD011,Laptop Stand,Electronics,1599,1,0,4.5,4,No
-ORD012,Fiction Novel,Books,399,2,0,4.3,4,No
-ORD013,Protein Powder,Health,2199,1,8,4.1,6,No
-ORD014,Trekking Shoes,Footwear,4999,1,20,4.8,5,No
-ORD015,Wireless Mouse,Electronics,799,1,5,4.2,3,No`,
-
-  marketing: `campaign_id,channel,message,clicks,impressions,conversions,spend,revenue,feedback
-C001,Email,Great deals on electronics this weekend! Shop now and save big.,1200,15000,89,5000,22000,Excellent response from customers
-C002,Social,Limited time offer - buy one get one free on all clothing items,3400,45000,234,12000,58000,Very positive engagement on Instagram
-C003,Email,Your account shows inactive status. We miss you! Come back for exclusive offer,890,12000,45,3000,8000,Poor open rates this time
-C004,Search,Best price guaranteed on laptops and mobile phones. Order today,2100,28000,178,9500,42000,Strong conversion from search
-C005,Social,Customer review: This product changed my life! See why thousands love it,5600,78000,412,18000,95000,Viral content excellent results
-C006,Email,Flash sale ending soon! Don't miss these incredible discounts on top brands,1450,18000,98,6000,24000,Good urgency messaging worked well
-C007,Social,New collection arrived featuring sustainable fashion for modern lifestyle,2890,38000,156,11000,35000,Mixed feedback on sustainability message
-C008,Search,Award winning customer service. Shop with confidence and easy returns,1670,22000,134,7500,31000,Solid performance in search campaigns`,
-
-  finance: `month,revenue,expenses,profit,cash_flow,employees,debt,equity,growth_rate
-Jan,450000,320000,130000,95000,45,850000,1200000,0.08
-Feb,480000,335000,145000,110000,45,820000,1250000,0.12
-Mar,510000,350000,160000,125000,48,790000,1310000,0.15
-Apr,490000,345000,145000,108000,48,780000,1355000,0.09
-May,535000,360000,175000,140000,50,760000,1430000,0.18
-Jun,560000,375000,185000,150000,50,740000,1515000,0.20
-Jul,520000,365000,155000,118000,52,720000,1570000,0.10
-Aug,545000,370000,175000,138000,52,700000,1645000,0.16
-Sep,580000,385000,195000,158000,55,680000,1740000,0.22
-Oct,610000,395000,215000,178000,55,660000,1855000,0.25
-Nov,650000,410000,240000,200000,58,640000,1995000,0.30
-Dec,690000,425000,265000,225000,58,620000,2160000,0.35`,
-
-  reviews: `review_id,product,rating,review_text,helpful_votes,verified
-R001,Laptop Pro X,5,Absolutely amazing laptop! Fast performance and great battery life. Best purchase ever.,45,Yes
-R002,Budget Phone Y,2,Terrible experience. Battery dies quickly and camera quality is very poor. Waste of money.,23,Yes
-R003,Wireless Earbuds,4,Good sound quality but the fit is a bit uncomfortable after long use. Overall satisfied.,12,Yes
-R004,Smart TV 55,5,Outstanding picture quality! Setup was easy and the interface is very intuitive and smooth.,67,Yes
-R005,Running Shoes,3,Average quality. The shoes are comfortable but not durable. Expected better for this price.,8,No
-R006,Coffee Maker,5,Best coffee maker I have ever owned! Makes perfect coffee every morning. Highly recommend.,34,Yes
-R007,Bluetooth Speaker,4,Great sound for outdoor use. Battery life is excellent. Minor issue with bass quality.,19,Yes
-R008,Gaming Chair,1,Complete disaster. Chair broke within a week. Customer service was unhelpful and rude.,56,Yes
-R009,Air Purifier,5,Wonderful product! Air quality improved significantly. Very quiet operation. Love it.,28,Yes
-R010,Kitchen Blender,2,Disappointing performance. Motor is weak and the lid keeps coming loose. Very frustrating.,15,Yes
-R011,Smartwatch,4,Impressive features and great battery life. The fitness tracking is accurate and helpful.,31,Yes
-R012,Yoga Mat,5,Perfect thickness and grip. Excellent quality material. Great for home workouts.,22,Yes`
-};
-
-async function loadSampleDataset(name) {
-  const csv = SAMPLE_DATASETS[name];
-  if(!csv) { console.error('Sample not found:', name); return; }
-  const blob = new Blob([csv], {type:'text/csv'});
-  const file = new File([blob], name + '_sample.csv', {type:'text/csv'});
-  await uploadFile(file);
+  setAuthLoading(true);
+  try {
+    const r = await safeJson(await safeFetch('/api/auth/register',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    }));
+    if(!r){ setAuthError('Server error. Please try again.'); return; }
+    if(!r.success){ setAuthError(r.error || 'Registration failed.'); return; }
+    setAuthSuccess(`✓ Account created! Signing you in...`);
+    await new Promise(r => setTimeout(r, 1000));
+    await doLogin();
+  } catch(e){ setAuthError('Connection error: ' + e.message); }
+  finally { setAuthLoading(false); }
 }
 
 
