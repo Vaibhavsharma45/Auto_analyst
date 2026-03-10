@@ -13,6 +13,25 @@ const BACKEND_URL = window.location.hostname === 'localhost' ||
   ? ''  // local — same origin
   : 'https://datamind-pro.onrender.com';
 
+// ─── LANGUAGE ───────────────────────────────────────
+let APP_LANG = localStorage.getItem('datamind_lang') || 'en';
+
+function toggleLang() {
+  APP_LANG = APP_LANG === 'en' ? 'hi' : 'en';
+  localStorage.setItem('datamind_lang', APP_LANG);
+  const btn = document.getElementById('langBtn');
+  if(btn) btn.textContent = APP_LANG === 'en' ? '🇬🇧 EN' : '🇮🇳 HI';
+  // Update chatbot system prompt label
+  const label = document.getElementById('chatLangLabel');
+  if(label) label.textContent = APP_LANG === 'en' ? 'English Mode' : 'Hinglish Mode';
+}
+
+function getLangInstruction() {
+  return APP_LANG === 'en'
+    ? 'Reply in professional English only. Use markdown formatting.'
+    : 'Reply in Hinglish (Hindi + English mix). Be conversational.';
+}
+
 // ─── STATE ─────────────────────────────────────────
 let SESSION_ID = null;
 let ANALYSIS_DATA = null;
@@ -1088,6 +1107,126 @@ async function doGuest(){
   document.getElementById('loginBtn').style.display='none';
 }
 
+
+// ─── SAMPLE DATASETS ────────────────────────────────
+const SAMPLE_DATASETS = {
+  sales: `month,product,category,sales,units,profit,region,target
+Jan,Laptop,Electronics,145000,29,42000,North,130000
+Jan,Phone,Electronics,89000,89,22000,South,80000
+Jan,Shoes,Apparel,34000,113,9000,East,40000
+Feb,Laptop,Electronics,167000,33,48000,North,150000
+Feb,Phone,Electronics,95000,95,24000,West,90000
+Feb,Shoes,Apparel,41000,136,11000,South,38000
+Mar,Laptop,Electronics,139000,27,40000,East,145000
+Mar,TV,Electronics,78000,15,18000,North,75000
+Mar,Shoes,Apparel,38000,126,10000,West,42000
+Apr,Phone,Electronics,103000,103,26000,North,95000
+Apr,Laptop,Electronics,188000,37,55000,South,170000
+Apr,TV,Electronics,92000,17,21000,East,88000
+May,Laptop,Electronics,172000,34,50000,West,160000
+May,Phone,Electronics,118000,118,30000,North,110000
+Jun,TV,Electronics,101000,19,23000,North,95000
+Jun,Laptop,Electronics,195000,39,57000,West,180000`,
+
+  hr: `id,name,department,age,salary,experience,rating,city,gender,promoted
+E001,Rahul Sharma,Engineering,28,75000,4,4.2,Delhi,M,No
+E002,Priya Patel,Marketing,32,65000,7,4.5,Mumbai,F,Yes
+E003,Amit Kumar,Engineering,35,92000,10,4.8,Bangalore,M,Yes
+E004,Sneha Gupta,HR,27,48000,3,3.9,Delhi,F,No
+E005,Vikram Singh,Engineering,30,82000,6,4.3,Hyderabad,M,No
+E006,Anita Joshi,Marketing,29,60000,5,4.1,Pune,F,No
+E007,Rajesh Verma,Finance,40,110000,15,4.6,Mumbai,M,Yes
+E008,Kavita Mehta,Engineering,26,68000,2,3.8,Bangalore,F,No
+E009,Suresh Nair,HR,33,52000,8,4.0,Chennai,M,No
+E010,Deepa Reddy,Finance,37,98000,12,4.7,Hyderabad,F,Yes
+E011,Karan Shah,Engineering,31,85000,7,4.4,Delhi,M,No
+E012,Meera Iyer,Finance,34,88000,9,4.2,Chennai,F,Yes
+E013,Nitin Jain,Marketing,36,72000,11,4.3,Mumbai,M,Yes
+E014,Pooja Desai,Engineering,24,58000,1,3.7,Pune,F,No
+E015,Rohit Mishra,HR,38,56000,13,4.1,Delhi,M,No`,
+
+  ecommerce: `order_id,product,category,price,qty,discount,rating,delivery_days,returned
+ORD001,Wireless Earbuds,Electronics,2499,1,10,4.3,3,No
+ORD002,Cotton Kurta,Clothing,899,2,5,4.1,5,No
+ORD003,Python Book,Books,599,1,0,4.7,4,No
+ORD004,Running Shoes,Footwear,3499,1,15,3.9,6,Yes
+ORD005,Bluetooth Speaker,Electronics,1999,1,8,4.5,3,No
+ORD006,Smart Watch,Electronics,8999,1,12,4.6,3,Yes
+ORD007,Yoga Mat,Sports,1499,1,0,4.4,5,No
+ORD008,Formal Shoes,Footwear,2999,1,5,4.2,7,No
+ORD009,Jeans,Clothing,1299,1,10,4.0,5,No
+ORD010,Cricket Bat,Sports,2999,1,5,4.6,7,No
+ORD011,Laptop Stand,Electronics,1599,1,0,4.5,4,No
+ORD012,Fiction Novel,Books,399,2,0,4.3,4,No
+ORD013,Protein Powder,Health,2199,1,8,4.1,6,No
+ORD014,Trekking Shoes,Footwear,4999,1,20,4.8,5,No
+ORD015,Wireless Mouse,Electronics,799,1,5,4.2,3,No`,
+
+  marketing: `campaign_id,channel,message,clicks,impressions,conversions,spend,revenue,feedback
+C001,Email,Great deals on electronics this weekend! Shop now and save big.,1200,15000,89,5000,22000,Excellent response from customers
+C002,Social,Limited time offer - buy one get one free on all clothing items,3400,45000,234,12000,58000,Very positive engagement on Instagram
+C003,Email,Your account shows inactive status. We miss you! Come back for exclusive offer,890,12000,45,3000,8000,Poor open rates this time
+C004,Search,Best price guaranteed on laptops and mobile phones. Order today,2100,28000,178,9500,42000,Strong conversion from search
+C005,Social,Customer review: This product changed my life! See why thousands love it,5600,78000,412,18000,95000,Viral content excellent results
+C006,Email,Flash sale ending soon! Don't miss these incredible discounts on top brands,1450,18000,98,6000,24000,Good urgency messaging worked well
+C007,Social,New collection arrived featuring sustainable fashion for modern lifestyle,2890,38000,156,11000,35000,Mixed feedback on sustainability message
+C008,Search,Award winning customer service. Shop with confidence and easy returns,1670,22000,134,7500,31000,Solid performance in search campaigns`,
+
+  finance: `month,revenue,expenses,profit,cash_flow,employees,debt,equity,growth_rate
+Jan,450000,320000,130000,95000,45,850000,1200000,0.08
+Feb,480000,335000,145000,110000,45,820000,1250000,0.12
+Mar,510000,350000,160000,125000,48,790000,1310000,0.15
+Apr,490000,345000,145000,108000,48,780000,1355000,0.09
+May,535000,360000,175000,140000,50,760000,1430000,0.18
+Jun,560000,375000,185000,150000,50,740000,1515000,0.20
+Jul,520000,365000,155000,118000,52,720000,1570000,0.10
+Aug,545000,370000,175000,138000,52,700000,1645000,0.16
+Sep,580000,385000,195000,158000,55,680000,1740000,0.22
+Oct,610000,395000,215000,178000,55,660000,1855000,0.25
+Nov,650000,410000,240000,200000,58,640000,1995000,0.30
+Dec,690000,425000,265000,225000,58,620000,2160000,0.35`,
+
+  reviews: `review_id,product,rating,review_text,helpful_votes,verified
+R001,Laptop Pro X,5,Absolutely amazing laptop! Fast performance and great battery life. Best purchase ever.,45,Yes
+R002,Budget Phone Y,2,Terrible experience. Battery dies quickly and camera quality is very poor. Waste of money.,23,Yes
+R003,Wireless Earbuds,4,Good sound quality but the fit is a bit uncomfortable after long use. Overall satisfied.,12,Yes
+R004,Smart TV 55,5,Outstanding picture quality! Setup was easy and the interface is very intuitive and smooth.,67,Yes
+R005,Running Shoes,3,Average quality. The shoes are comfortable but not durable. Expected better for this price.,8,No
+R006,Coffee Maker,5,Best coffee maker I have ever owned! Makes perfect coffee every morning. Highly recommend.,34,Yes
+R007,Bluetooth Speaker,4,Great sound for outdoor use. Battery life is excellent. Minor issue with bass quality.,19,Yes
+R008,Gaming Chair,1,Complete disaster. Chair broke within a week. Customer service was unhelpful and rude.,56,Yes
+R009,Air Purifier,5,Wonderful product! Air quality improved significantly. Very quiet operation. Love it.,28,Yes
+R010,Kitchen Blender,2,Disappointing performance. Motor is weak and the lid keeps coming loose. Very frustrating.,15,Yes
+R011,Smartwatch,4,Impressive features and great battery life. The fitness tracking is accurate and helpful.,31,Yes
+R012,Yoga Mat,5,Perfect thickness and grip. Excellent quality material. Great for home workouts.,22,Yes`
+};
+
+async function loadSampleDataset(name) {
+  const csv = SAMPLE_DATASETS[name];
+  if(!csv) return;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const file = new File([blob], name + '_sample.csv', {type:'text/csv'});
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  const fileInput = document.getElementById('fileInput');
+  if(fileInput) {
+    fileInput.files = dt.files;
+    await uploadFile();
+  }
+}
+
+// ─── NLP COLUMN POPULATE ────────────────────────────
+function populateNLPColumns(columns) {
+  const sel = document.getElementById('nlpColSelect');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Select a text column --</option>';
+  columns.forEach(col => {
+    const opt = document.createElement('option');
+    opt.value = col; opt.textContent = col;
+    sel.appendChild(opt);
+  });
+}
+
 async function doLogout(){
   await safeFetch('/api/auth/logout', {method:'POST',credentials:'include'});
   document.getElementById('userBadge').style.display='none';
@@ -1119,3 +1258,79 @@ setInterval(async function() {
     if(SESSION_ID) await fetch(api('/api/analysis/full/' + SESSION_ID + '?ping=1'));
   } catch(e) {}
 }, 8 * 60 * 1000);
+
+// ─── NLP ANALYSIS ───────────────────────────────────
+async function runNLPAnalysis(column) {
+  if(!SESSION_ID) return;
+  const resultsDiv = document.getElementById('nlpResults');
+  if(resultsDiv) resultsDiv.innerHTML = '<div class="loading-pulse">Analyzing text...</div>';
+  try {
+    const r = await safeFetch(BACKEND_URL + '/api/nlp/analyze/' + SESSION_ID, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({column})
+    });
+    const data = await r.json();
+    if(data.error) { if(resultsDiv) resultsDiv.innerHTML = '<div class="error-msg">'+data.error+'</div>'; return; }
+    
+    const sentColors = {Positive:'#3fb950', Negative:'#f85149', Neutral:'#58a6ff'};
+    const sentDist = data.sentiment_distribution || {};
+    const totalSent = Object.values(sentDist).reduce((a,b)=>a+b,0);
+    
+    const keywords = (data.keywords||[]).slice(0,20);
+    const maxCount = keywords[0]?.count || 1;
+    const kwHTML = keywords.map(k => {
+      const pct = Math.round(k.count/maxCount*100);
+      const size = 11 + Math.round(k.frequency/2);
+      return `<span class="kw-tag" style="font-size:${size}px;opacity:${0.5+pct/200}">${k.word} <small>${k.count}</small></span>`;
+    }).join('');
+    
+    const stats = data.text_stats || {};
+    const samples = data.sample_sentiments || [];
+    
+    if(resultsDiv) resultsDiv.innerHTML = `
+      <div class="nlp-grid">
+        <div class="nlp-card">
+          <div class="nlp-card-title">Overall Sentiment</div>
+          <div class="nlp-sentiment-big" style="color:${sentColors[data.overall_sentiment]||'#58a6ff'}">
+            ${data.overall_sentiment === 'Positive' ? '😊' : data.overall_sentiment === 'Negative' ? '😞' : '😐'}
+            ${data.overall_sentiment}
+          </div>
+          <div style="color:#8b949e;font-size:12px">Score: ${data.avg_sentiment_score}</div>
+          <div style="margin-top:12px">
+            ${Object.entries(sentDist).map(([lbl,cnt])=>`
+              <div style="margin:5px 0">
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span style="color:${sentColors[lbl]}">${lbl}</span>
+                  <span style="color:#8b949e">${cnt} (${Math.round(cnt/totalSent*100)}%)</span>
+                </div>
+                <div class="fill-bar"><div class="fill-inner" style="width:${Math.round(cnt/totalSent*100)}%;background:${sentColors[lbl]}"></div></div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="nlp-card">
+          <div class="nlp-card-title">Text Statistics</div>
+          <div class="nlp-stat-grid">
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.total_words?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Words</div></div>
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.unique_words?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Unique</div></div>
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.total_sentences?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Sentences</div></div>
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.vocabulary_richness||0}%</div><div class="nlp-stat-lbl">Vocabulary</div></div>
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.readability_score||0}</div><div class="nlp-stat-lbl">Readability</div></div>
+            <div class="nlp-stat"><div class="nlp-stat-val">${stats.readability_label||'—'}</div><div class="nlp-stat-lbl">Level</div></div>
+          </div>
+        </div>
+        <div class="nlp-card nlp-card-full">
+          <div class="nlp-card-title">Top Keywords</div>
+          <div class="kw-cloud">${kwHTML}</div>
+        </div>
+        <div class="nlp-card nlp-card-full">
+          <div class="nlp-card-title">Sample Analysis</div>
+          ${samples.map(s=>`
+            <div class="nlp-sample">
+              <span class="nlp-sample-text">"${s.text}..."</span>
+              <span class="nlp-badge" style="background:${sentColors[s.label]||'#58a6ff'}22;color:${sentColors[s.label]||'#58a6ff'};border:1px solid ${sentColors[s.label]||'#58a6ff'}44">${s.label}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) { if(resultsDiv) resultsDiv.innerHTML = '<div class="error-msg">Analysis failed: '+e.message+'</div>'; }
+}
