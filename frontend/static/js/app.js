@@ -80,7 +80,33 @@ let GOAL_TEMPLATES = {};
 // ─── SAFE FETCH — uses BACKEND_URL ──────────────
 async function safeFetch(url, options={}) {
   const fullUrl = url.startsWith('/api/') ? BACKEND_URL + url : url;
-  return await fetch(fullUrl, options);
+  const res = await fetch(fullUrl, options);
+  // Detect session expiry on any data API call
+  if(res.status === 404 && SESSION_ID && url.includes(SESSION_ID)) {
+    showSessionExpiredBanner();
+  }
+  return res;
+}
+
+function showSessionExpiredBanner() {
+  if(document.getElementById('sessionExpiredBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'sessionExpiredBanner';
+  b.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px';
+  b.innerHTML = `
+    <div style="background:#161b22;border:1px solid #d29922;border-radius:14px;padding:28px 32px;max-width:440px;text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">⏳</div>
+      <h3 style="color:#e6edf3;font-size:18px;margin-bottom:8px">Session Expired</h3>
+      <p style="color:#8b949e;font-size:13px;line-height:1.6;margin-bottom:20px">
+        The server restarted and your session was cleared from memory.<br>
+        This happens on free hosting after periods of inactivity.
+      </p>
+      <button onclick="resetApp()" style="width:100%;padding:11px;background:linear-gradient(135deg,#388bfd,#58a6ff);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:Syne,sans-serif">
+        🔄 Upload Dataset Again
+      </button>
+      <p style="color:#8b949e;font-size:11px;margin-top:10px">Your data is never stored on our servers.</p>
+    </div>`;
+  document.body.appendChild(b);
 }
 
 

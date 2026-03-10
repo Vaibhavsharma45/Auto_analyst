@@ -141,7 +141,16 @@ def chat_message(session_id):
         return jsonify({"reply": reply, "transform_result": transform_result})
 
     except Exception as e:
-        return jsonify({"reply": f"❌ API Error: {str(e)}", "transform_result": None})
+        err = str(e)
+        if "429" in err or "rate" in err.lower():
+            msg = "⚠️ Rate limit reached. Groq free tier allows ~30 requests/minute. Please wait 60 seconds and try again."
+        elif "401" in err or "auth" in err.lower():
+            msg = "⚠️ API key invalid or expired. Check GROQ_API_KEY in environment variables."
+        elif "timeout" in err.lower() or "timed out" in err.lower():
+            msg = "⚠️ Request timed out. The AI service is busy — please try again in a moment."
+        else:
+            msg = f"⚠️ AI service error: {err[:100]}"
+        return jsonify({"reply": msg, "transform_result": None})
 
 
 def _call_groq(api_key: str, system: str, messages: list) -> str:
