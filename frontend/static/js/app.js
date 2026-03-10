@@ -1244,73 +1244,206 @@ async function showLoginModal(){
 
 function hideLoginModal(){document.getElementById('loginModal').style.display='none';}
 
-async function doLogin(){
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
-  document.getElementById('loginError').innerHTML = '';
+// ─── AUTH SYSTEM ─────────────────────────────────────
+const PASSWORD_RULES = [
+  { re: /.{8,}/, label: '8+ characters' },
+  { re: /[A-Z]/, label: 'Uppercase letter' },
+  { re: /[a-z]/, label: 'Lowercase letter' },
+  { re: /[0-9]/, label: 'Number' },
+  { re: /[!@#$%^&*(),.?":{}|<>_\-]/, label: 'Special character' },
+];
 
-  // Client-side validation
-  if(!username){ document.getElementById('errUsername').textContent='Username is required.'; return; }
-  if(!password){ document.getElementById('errPassword').textContent='Password is required.'; return; }
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  const modeEl = document.getElementById('authMode');
+  if(modeEl) modeEl.value = tab;
+
+  // Update tab styles
+  const tl = document.getElementById('tabLogin');
+  const tr = document.getElementById('tabRegister');
+  if(tl) tl.style.cssText = isLogin
+    ? 'flex:1;padding:16px;background:rgba(77,158,255,.08);border:none;border-bottom:2px solid #4d9eff;color:#4d9eff;font-weight:700;font-size:13px;cursor:pointer;font-family:Syne,sans-serif'
+    : 'flex:1;padding:16px;background:transparent;border:none;border-bottom:2px solid transparent;color:#7c8ea6;font-weight:700;font-size:13px;cursor:pointer;font-family:Syne,sans-serif';
+  if(tr) tr.style.cssText = !isLogin
+    ? 'flex:1;padding:16px;background:rgba(167,139,250,.08);border:none;border-bottom:2px solid #a78bfa;color:#a78bfa;font-weight:700;font-size:13px;cursor:pointer;font-family:Syne,sans-serif'
+    : 'flex:1;padding:16px;background:transparent;border:none;border-bottom:2px solid transparent;color:#7c8ea6;font-weight:700;font-size:13px;cursor:pointer;font-family:Syne,sans-serif';
+
+  const title = document.getElementById('authTitle');
+  const sub = document.getElementById('authSubtitle');
+  const btn = document.getElementById('authSubmitBtn');
+  const sw = document.getElementById('passStrengthWrap');
+
+  if(title) title.textContent = isLogin ? 'Welcome back' : 'Create your account';
+  if(sub) sub.textContent = isLogin ? 'Sign in to your DataMind Pro account' : 'Join DataMind Pro — free forever';
+  if(btn) { btn.textContent = isLogin ? 'Sign In' : 'Create Account'; btn.onclick = isLogin ? doLogin : doRegister; }
+  if(sw) sw.style.display = isLogin ? 'none' : 'block';
+
+  // Clear errors
+  const le = document.getElementById('loginError');
+  const eu = document.getElementById('errUsername');
+  const ep = document.getElementById('errPassword');
+  if(le) le.innerHTML = '';
+  if(eu) eu.textContent = '';
+  if(ep) ep.textContent = '';
+  if(!isLogin) renderPassRequirements('');
+}
+
+function renderPassRequirements(password) {
+  const wrap = document.getElementById('passRequirements');
+  if(!wrap) return;
+  wrap.innerHTML = PASSWORD_RULES.map(r => {
+    const ok = r.re.test(password);
+    return `<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:${ok?'#34d058':'#7c8ea6'}">
+      <span style="font-size:12px">${ok ? '✓' : '○'}</span><span>${r.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function updatePassStrength(password) {
+  const score = PASSWORD_RULES.filter(r => r.re.test(password)).length;
+  const pct = (score / PASSWORD_RULES.length) * 100;
+  const colors = ['#f85149','#f85149','#f0a732','#f0a732','#34d058','#34d058'];
+  const labels = ['','Very Weak','Weak','Fair','Good','Strong'];
+  const bar = document.getElementById('passStrengthBar');
+  const lbl = document.getElementById('passStrengthLabel');
+  if(bar) { bar.style.width = pct + '%'; bar.style.background = colors[score]; }
+  if(lbl) { lbl.textContent = labels[score] || ''; lbl.style.color = colors[score]; }
+  renderPassRequirements(password);
+}
+
+function validateAuthField(field) {
+  const username = (document.getElementById('loginUser') || {}).value || '';
+  const password = (document.getElementById('loginPass') || {}).value || '';
+  const mode = (document.getElementById('authMode') || {}).value || 'login';
+  if(field === 'username') {
+    const el = document.getElementById('errUsername');
+    if(!el || !username) { if(el) el.textContent=''; return; }
+    if(username.length < 3) el.textContent = 'At least 3 characters';
+    else if(!/^[a-zA-Z0-9_]+$/.test(username)) el.textContent = 'Only letters, numbers, underscores';
+    else el.textContent = '';
+  }
+  if(field === 'password' && mode === 'register') {
+    const el = document.getElementById('errPassword');
+    updatePassStrength(password);
+    if(el) el.textContent = (password.length > 0 && password.length < 8) ? 'Minimum 8 characters' : '';
+  }
+}
+
+function togglePassVisibility() {
+  const inp = document.getElementById('loginPass');
+  if(inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function setAuthError(msg) {
+  const el = document.getElementById('loginError');
+  if(el) el.innerHTML = `<div style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;padding:9px 13px;color:#f85149;font-size:12px">${msg}</div>`;
+}
+
+function setAuthSuccess(msg) {
+  const el = document.getElementById('loginError');
+  if(el) el.innerHTML = `<div style="background:rgba(52,208,88,.08);border:1px solid rgba(52,208,88,.2);border-radius:8px;padding:9px 13px;color:#34d058;font-size:12px">${msg}</div>`;
+}
+
+function setAuthLoading(on) {
+  const btn = document.getElementById('authSubmitBtn');
+  if(!btn) return;
+  const mode = (document.getElementById('authMode') || {}).value || 'login';
+  btn.disabled = on;
+  btn.style.opacity = on ? '0.6' : '1';
+  if(!on) btn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  else btn.textContent = '...';
+}
+
+function doGuest() {
+  hideLoginModal();
+  const badge = document.getElementById('userBadge');
+  const lb = document.getElementById('loginBtn');
+  if(badge) { badge.textContent = '👤 Guest'; badge.style.display = 'inline-block'; }
+  if(lb) lb.style.display = 'none';
+}
+
+async function doLogin() {
+  const username = (document.getElementById('loginUser') || {}).value?.trim() || '';
+  const password = (document.getElementById('loginPass') || {}).value || '';
+  const eu = document.getElementById('errUsername');
+  const ep = document.getElementById('errPassword');
+  if(eu) eu.textContent = '';
+  if(ep) ep.textContent = '';
+  const le = document.getElementById('loginError');
+  if(le) le.innerHTML = '';
+
+  if(!username) { if(eu) eu.textContent = 'Username is required.'; return; }
+  if(!password) { if(ep) ep.textContent = 'Password is required.'; return; }
 
   setAuthLoading(true);
   try {
-    const r = await safeJson(await safeFetch('/api/auth/login',{
-      method:'POST', headers:{'Content-Type':'application/json'},
+    const r = await safeJson(await safeFetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({username, password})
     }));
-    if(!r){ setAuthError('Server error. Please try again.'); return; }
-    if(!r.success){ setAuthError(r.error || 'Login failed.'); return; }
+    if(!r) { setAuthError('Server error. Please try again.'); return; }
+    if(!r.success) { setAuthError(r.error || 'Login failed. Check your credentials.'); return; }
+
     localStorage.setItem('dm_user', r.username);
     localStorage.setItem('dm_token', r.token);
     hideLoginModal();
     const badge = document.getElementById('userBadge');
-    if(badge){ badge.textContent=`👤 ${r.username}`; badge.style.display='inline-block'; }
     const lb = document.getElementById('loginBtn');
-    if(lb) lb.style.display='none';
-  } catch(e){ setAuthError('Connection error: ' + e.message); }
-  finally { setAuthLoading(false); }
+    if(badge) { badge.textContent = `👤 ${r.username}`; badge.style.display = 'inline-block'; }
+    if(lb) lb.style.display = 'none';
+  } catch(e) {
+    setAuthError('Connection error: ' + (e.message || 'Unknown'));
+  } finally {
+    setAuthLoading(false);
+  }
 }
 
-async function doRegister(){
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
-  document.getElementById('loginError').innerHTML = '';
+async function doRegister() {
+  const username = (document.getElementById('loginUser') || {}).value?.trim() || '';
+  const password = (document.getElementById('loginPass') || {}).value || '';
+  const eu = document.getElementById('errUsername');
+  const ep = document.getElementById('errPassword');
+  if(eu) eu.textContent = '';
+  if(ep) ep.textContent = '';
+  const le = document.getElementById('loginError');
+  if(le) le.innerHTML = '';
 
-  // Client-side validation
   let hasErr = false;
-  if(!username || username.length < 3){
-    document.getElementById('errUsername').textContent = 'Username must be at least 3 characters.';
+  if(!username || username.length < 3) {
+    if(eu) eu.textContent = 'Username must be at least 3 characters.';
     hasErr = true;
-  } else if(!/^[a-zA-Z0-9_]+$/.test(username)){
-    document.getElementById('errUsername').textContent = 'Only letters, numbers, underscores allowed.';
+  } else if(!/^[a-zA-Z0-9_]+$/.test(username)) {
+    if(eu) eu.textContent = 'Only letters, numbers, and underscores allowed.';
     hasErr = true;
-  } else { document.getElementById('errUsername').textContent = ''; }
+  }
 
-  const passRules = [/.{8,}/,/[A-Z]/,/[a-z]/,/\d/,/[!@#$%^&*(),.?":{}|<>_\-]/];
-  const passScore = passRules.filter(r => r.test(password)).length;
-  if(passScore < 4){
-    document.getElementById('errPassword').textContent = 'Password does not meet requirements.';
+  const passScore = PASSWORD_RULES.filter(r => r.re.test(password)).length;
+  if(passScore < 4) {
+    if(ep) ep.textContent = 'Password does not meet all requirements.';
     hasErr = true;
-  } else { document.getElementById('errPassword').textContent = ''; }
-
+  }
   if(hasErr) return;
 
   setAuthLoading(true);
   try {
-    const r = await safeJson(await safeFetch('/api/auth/register',{
-      method:'POST', headers:{'Content-Type':'application/json'},
+    const r = await safeJson(await safeFetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({username, password})
     }));
-    if(!r){ setAuthError('Server error. Please try again.'); return; }
-    if(!r.success){ setAuthError(r.error || 'Registration failed.'); return; }
-    setAuthSuccess(`✓ Account created! Signing you in...`);
-    await new Promise(r => setTimeout(r, 1000));
-    await doLogin();
-  } catch(e){ setAuthError('Connection error: ' + e.message); }
-  finally { setAuthLoading(false); }
-}
+    if(!r) { setAuthError('Server error. Please try again.'); return; }
+    if(!r.success) { setAuthError(r.error || 'Registration failed.'); return; }
 
+    setAuthSuccess('✓ Account created! Signing you in...');
+    await new Promise(res => setTimeout(res, 1000));
+    await doLogin();
+  } catch(e) {
+    setAuthError('Connection error: ' + (e.message || 'Unknown'));
+  } finally {
+    setAuthLoading(false);
+  }
+}
 
 async function doLogout(){
   await safeFetch('/api/auth/logout', {method:'POST',credentials:'include'});
