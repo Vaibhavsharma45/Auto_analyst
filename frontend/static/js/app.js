@@ -343,25 +343,59 @@ Kuch bhi poochho — main taiyaar hun! 🚀`);
 }
 
 async function fetchAnalysis() {
-  for(var attempt = 1; attempt <= 2; attempt++) {
+  const MAX_ATTEMPTS = 3;
+  const DELAYS = [0, 3000, 5000]; // ms before each attempt
+  
+  for(var attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      if(attempt === 2) {
-        setProgress(40, 'Retrying analysis...', 'Second attempt...');
-        await new Promise(function(r){ setTimeout(r, 2000); });
+      if(attempt > 1) {
+        const msg = attempt === 2 ? 'Taking a moment...' : 'Almost there...';
+        setProgress(40, `Processing large dataset (attempt ${attempt}/${MAX_ATTEMPTS})`, msg);
+        await new Promise(function(r){ setTimeout(r, DELAYS[attempt-1]); });
       }
-      var res = await safeFetch('/api/analysis/full/' + SESSION_ID);
-      if(!res.ok){
-        if(attempt === 2){ hideLoading(); showErrorBanner('Server error ' + res.status + ' — please re-upload dataset.'); return null; }
+      
+      var controller = new AbortController();
+      var timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
+      
+      var res = await safeFetch('/api/analysis/full/' + SESSION_ID, {signal: controller.signal});
+      clearTimeout(timeoutId);
+      
+      if(!res.ok) {
+        if(attempt === MAX_ATTEMPTS) {
+          hideLoading();
+          showErrorBanner('Analysis failed (HTTP ' + res.status + '). Try re-uploading or use a smaller dataset.');
+          return null;
+        }
         continue;
       }
+      
       var data = await res.json();
-      if(!data || !data.overview){
-        if(attempt === 2){ hideLoading(); showErrorBanner('Analysis returned empty — try re-uploading.'); return null; }
+      if(!data || !data.overview) {
+        if(attempt === MAX_ATTEMPTS) {
+          hideLoading();
+          showErrorBanner('Analysis incomplete. Dataset may be too complex — try removing unused columns.');
+          return null;
+        }
         continue;
       }
+      
       return data;
-    } catch(e){
-      if(attempt === 2){ hideLoading(); showErrorBanner('Analysis failed: ' + e.message); return null; }
+      
+    } catch(e) {
+      clearTimeout(timeoutId);
+      if(e.name === 'AbortError') {
+        if(attempt === MAX_ATTEMPTS) {
+          hideLoading();
+          showErrorBanner('Analysis timed out (90s). Dataset is very large — try uploading a sample of the data.');
+          return null;
+        }
+        continue;
+      }
+      if(attempt === MAX_ATTEMPTS) {
+        hideLoading();
+        showErrorBanner('Analysis error: ' + (e.message || 'Unknown error'));
+        return null;
+      }
     }
   }
   return null;
