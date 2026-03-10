@@ -1237,29 +1237,12 @@ R012,Yoga Mat,5,Perfect thickness and grip. Excellent quality material. Great fo
 
 async function loadSampleDataset(name) {
   const csv = SAMPLE_DATASETS[name];
-  if(!csv) return;
+  if(!csv) { console.error('Sample not found:', name); return; }
   const blob = new Blob([csv], {type:'text/csv'});
   const file = new File([blob], name + '_sample.csv', {type:'text/csv'});
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  const fileInput = document.getElementById('fileInput');
-  if(fileInput) {
-    fileInput.files = dt.files;
-    await uploadFile();
-  }
+  await uploadFile(file);
 }
 
-// ─── NLP COLUMN POPULATE ────────────────────────────
-function populateNLPColumns(columns) {
-  const sel = document.getElementById('nlpColSelect');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">-- Select a text column --</option>';
-  columns.forEach(col => {
-    const opt = document.createElement('option');
-    opt.value = col; opt.textContent = col;
-    sel.appendChild(opt);
-  });
-}
 
 async function doLogout(){
   await safeFetch('/api/auth/logout', {method:'POST',credentials:'include'});
@@ -1292,81 +1275,3 @@ setInterval(async function() {
     if(SESSION_ID) await fetch(api('/api/analysis/full/' + SESSION_ID + '?ping=1'));
   } catch(e) {}
 }, 8 * 60 * 1000);
-
-// ─── NLP ANALYSIS ───────────────────────────────────
-async function runNLPAnalysis(column) {
-  if(!SESSION_ID) return;
-  const resultsDiv = document.getElementById('nlpResults');
-  if(resultsDiv) resultsDiv.innerHTML = '<div class="loading-pulse">Analyzing text...</div>';
-  try {
-    const r = await safeFetch(BACKEND_URL + '/api/nlp/analyze/' + SESSION_ID, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({column})
-    });
-    const data = await r.json();
-    if(data.error) { if(resultsDiv) resultsDiv.innerHTML = '<div class="error-msg">'+data.error+'</div>'; return; }
-    
-    const sentColors = {Positive:'#3fb950', Negative:'#f85149', Neutral:'#58a6ff'};
-    const sentDist = data.sentiment_distribution || {};
-    const totalSent = Object.values(sentDist).reduce((a,b)=>a+b,0);
-    
-    const keywords = (data.keywords||[]).slice(0,20);
-    const maxCount = keywords[0]?.count || 1;
-    const kwHTML = keywords.map(k => {
-      const pct = Math.round(k.count/maxCount*100);
-      const size = 11 + Math.round(k.frequency/2);
-      return `<span class="kw-tag" style="font-size:${size}px;opacity:${0.5+pct/200}">${k.word} <small>${k.count}</small></span>`;
-    }).join('');
-    
-    const stats = data.text_stats || {};
-    const samples = data.sample_sentiments || [];
-    
-    if(resultsDiv) resultsDiv.innerHTML = `
-      <div class="nlp-grid">
-        <div class="nlp-card">
-          <div class="nlp-card-title">Overall Sentiment</div>
-          <div class="nlp-sentiment-big" style="color:${sentColors[data.overall_sentiment]||'#58a6ff'}">
-            ${data.overall_sentiment === 'Positive' ? '😊' : data.overall_sentiment === 'Negative' ? '😞' : '😐'}
-            ${data.overall_sentiment}
-          </div>
-          <div style="color:#8b949e;font-size:12px">Score: ${data.avg_sentiment_score}</div>
-          <div style="margin-top:12px">
-            ${Object.entries(sentDist).map(([lbl,cnt])=>`
-              <div style="margin:5px 0">
-                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-                  <span style="color:${sentColors[lbl]}">${lbl}</span>
-                  <span style="color:#8b949e">${cnt} (${Math.round(cnt/totalSent*100)}%)</span>
-                </div>
-                <div class="fill-bar"><div class="fill-inner" style="width:${Math.round(cnt/totalSent*100)}%;background:${sentColors[lbl]}"></div></div>
-              </div>`).join('')}
-          </div>
-        </div>
-        <div class="nlp-card">
-          <div class="nlp-card-title">Text Statistics</div>
-          <div class="nlp-stat-grid">
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.total_words?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Words</div></div>
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.unique_words?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Unique</div></div>
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.total_sentences?.toLocaleString()||0}</div><div class="nlp-stat-lbl">Sentences</div></div>
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.vocabulary_richness||0}%</div><div class="nlp-stat-lbl">Vocabulary</div></div>
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.readability_score||0}</div><div class="nlp-stat-lbl">Readability</div></div>
-            <div class="nlp-stat"><div class="nlp-stat-val">${stats.readability_label||'—'}</div><div class="nlp-stat-lbl">Level</div></div>
-          </div>
-        </div>
-        <div class="nlp-card nlp-card-full">
-          <div class="nlp-card-title">Top Keywords</div>
-          <div class="kw-cloud">${kwHTML}</div>
-        </div>
-        <div class="nlp-card nlp-card-full">
-          <div class="nlp-card-title">Sample Analysis</div>
-          ${samples.map(s=>`
-            <div class="nlp-sample">
-              <span class="nlp-sample-text">"${s.text}..."</span>
-              <span class="nlp-badge" style="background:${sentColors[s.label]||'#58a6ff'}22;color:${sentColors[s.label]||'#58a6ff'};border:1px solid ${sentColors[s.label]||'#58a6ff'}44">${s.label}</span>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  } catch(e) { if(resultsDiv) resultsDiv.innerHTML = '<div class="error-msg">Analysis failed: '+e.message+'</div>'; }
-}
-
-document.addEventListener('DOMContentLoaded', function(){ applyLang(); });
