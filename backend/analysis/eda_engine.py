@@ -237,7 +237,14 @@ class EDAEngine:
                     }
                 except Exception:
                     pass
-        return result
+        # Sanitize NaN/Inf values before returning — JSON doesn't support them
+        import math
+        def _sanitize(obj):
+            if isinstance(obj, dict): return {k: _sanitize(v) for k,v in obj.items()}
+            if isinstance(obj, list): return [_sanitize(v) for v in obj]
+            if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)): return None
+            return obj
+        return _sanitize(result)
 
     # ─────────────────────────────────────────────
     # 6. DATA QUALITY REPORT
@@ -403,4 +410,3 @@ class EDAEngine:
             "pca_summary": self.get_pca_summary(),
             "time_series": self.get_time_series_analysis(),
         }
-

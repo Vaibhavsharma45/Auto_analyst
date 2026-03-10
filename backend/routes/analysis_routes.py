@@ -4,8 +4,21 @@ backend/routes/analysis_routes.py
 from flask import Blueprint, request, jsonify
 from backend.utils.session_store import get_session, get_df, apply_df_operation, update_session
 from backend.analysis.eda_engine import EDAEngine
+import math, json
 
 analysis_bp = Blueprint("analysis", __name__)
+
+def sanitize(obj):
+    """Recursively replace NaN/Inf with None so JSON stays valid."""
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    return obj
 
 @analysis_bp.route("/full/<session_id>", methods=["GET"])
 def full_analysis(session_id):
@@ -16,7 +29,7 @@ def full_analysis(session_id):
         engine = EDAEngine(df)
         result = engine.run_full_analysis()
         update_session(session_id, analysis=result)
-        return jsonify(result)
+        return jsonify(sanitize(result))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -74,7 +87,7 @@ def transform(session_id):
     if not body:
         return jsonify({"error": "No body"}), 400
     result = apply_df_operation(session_id, body.get("operation"), body.get("params", {}))
-    return jsonify(result)
+    return jsonify(sanitize(result))
 
 @analysis_bp.route("/download/csv/<session_id>")
 def download_csv(session_id):
@@ -101,4 +114,3 @@ def download_excel(session_id):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=datamind-export.xlsx"}
     )
-
