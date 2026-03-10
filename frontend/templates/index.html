@@ -14,14 +14,14 @@
 <div id="loginModal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;width:360px;max-width:90vw">
     <h3 style="margin-bottom:20px;font-size:18px">👤 Login / Register</h3>
-    <div class="tf-group"><label>Username</label><input type="text" id="loginUser" placeholder="your_username"></div>
-    <div class="tf-group" style="margin-top:10px"><label>Password</label><input type="password" id="loginPass" placeholder="password"></div>
+    <div class="tf-group"><label>Username</label><input type="text" id="loginUser" placeholder="your_username" autocomplete="off"></div>
+    <div class="tf-group" style="margin-top:10px"><label>Password</label><input type="password" id="loginPass" placeholder="password" autocomplete="new-password"></div>
     <div id="loginError" style="color:var(--red);font-size:12px;margin:8px 0;min-height:16px"></div>
     <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn-primary" style="flex:1" onclick="doLogin()">Login</button>
       <button class="btn-primary" style="flex:1;background:linear-gradient(135deg,var(--accent2),#5b21b6)" onclick="doRegister()">Register</button>
     </div>
-    <button onclick="hideLoginModal()" style="width:100%;margin-top:10px;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-family:Syne,sans-serif">Cancel</button>
+    <button onclick="doGuest()" style="width:100%;margin-top:10px;padding:8px;background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);border-radius:8px;color:#3fb950;cursor:pointer;font-family:Syne,sans-serif;font-weight:700">👤 Continue as Guest</button>
   </div>
 </div>
 
