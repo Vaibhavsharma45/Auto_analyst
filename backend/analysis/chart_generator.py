@@ -12,9 +12,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 from scipy import stats
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
 import io
 import base64
 import json
@@ -431,10 +435,11 @@ class ChartGenerator:
         def safe(fn, key):
             try:
                 val = fn()
-                if val:
+                if val and not (isinstance(val, dict) and 'error' in val):
                     result[key] = val
             except Exception as e:
-                result[key] = {"error": str(e)}
+                import traceback
+                print(f"Chart {key} failed: {e}")
 
         safe(self.distribution_dashboard, "distribution_dashboard")
         safe(self.boxplot_dashboard, "boxplot_dashboard")
@@ -451,4 +456,3 @@ class ChartGenerator:
             result["categorical_charts"] = cat_charts
 
         return result
-

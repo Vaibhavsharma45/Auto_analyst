@@ -88,6 +88,18 @@ async function safeFetch(url, options={}) {
   return res;
 }
 
+// ─── SAFE JSON PARSE ─────────────────────────────
+async function safeJson(res) {
+  const text = await res.text();
+  if(!text || !text.trim()) return null;
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    console.error('JSON parse error:', e.message, '| Response:', text.slice(0,200));
+    return null;
+  }
+}
+
 function showSessionExpiredBanner() {
   if(document.getElementById('sessionExpiredBanner')) return;
   const b = document.createElement('div');
@@ -172,7 +184,7 @@ async function initStep1() {
   try {
     const res = await safeFetch('/api/workflow/goals');
     if(res.ok) {
-      const data = await res.json();
+      const data = await safeJson(res);
       if(data && typeof data === 'object') GOAL_TEMPLATES = data;
     }
   } catch(e) { console.warn('Goals load failed:', e.message); }
@@ -258,10 +270,10 @@ async function uploadFile(file) {
     const res = await safeFetch('/api/upload/file', {method:'POST', body:fd});
     if(!res.ok && res.status !== 200) {
       let errText = `Server error (${res.status})`;
-      try { const d = await res.json(); errText = d.error || errText; } catch(e){}
+      try { const d = await safeJson(res); errText = d.error || errText; } catch(e){}
       hideLoading(); showErrorBanner(errText); return;
     }
-    const data = await res.json();
+    const data = await safeJson(res);
     if(data.error) { hideLoading(); showErrorBanner(data.error); return; }
 
     // Show warnings (non-blocking)
@@ -298,7 +310,7 @@ async function uploadText() {
   showLoading('Parsing CSV...', 15, 'Detecting separator...');
   try {
     const res = await safeFetch('/api/upload/text', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    const data = await res.json();
+    const data = await safeJson(res);
     if(data.error){hideLoading();showErrorBanner('Parse error: ' + data.error);return;}
     await runFullPipeline(data.session_id, data.filename);
   } catch(e){hideLoading();showErrorBanner('Network error: ' + e.message);}
@@ -395,7 +407,7 @@ async function fetchAnalysis() {
         continue;
       }
       
-      var data = await res.json();
+      var data = await safeJson(res);
       if(!data || !data.overview) {
         if(attempt === MAX_ATTEMPTS) {
           hideLoading();
@@ -431,7 +443,7 @@ async function fetchCharts() {
   try {
     const res = await safeFetch(`/api/charts/all/${SESSION_ID}`);
     if(!res.ok){ console.warn('Charts failed:', res.status); AVAILABLE_CHARTS = []; return; }
-    const data = await res.json();
+    const data = await safeJson(res);
     AVAILABLE_CHARTS = (data && data.available_charts) ? data.available_charts : [];
   } catch(e){ console.warn('Charts error:', e.message); AVAILABLE_CHARTS = []; }
 }
@@ -530,7 +542,7 @@ async function runTransform(op, params, resId) {
   el.style.display='block'; el.className='tf-result'; el.textContent='Running...';
   try {
     const res=await safeFetch(`/api/analysis/transform/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:op,params})});
-    const data=await res.json();
+    const data = await safeJson(res);
     if(data.success){
       el.className='tf-result ok'; el.textContent=`✅ Done! ${data.original_shape[0]}×${data.original_shape[1]} → ${data.new_shape[0]}×${data.new_shape[1]}`;
       const analysis=await fetchAnalysis(); if(analysis){ANALYSIS_DATA=analysis; renderAll();}
@@ -586,7 +598,7 @@ function renderAnalyze() {
 async function loadPlotlyChart(id, name) {
   try {
     const res=await safeFetch(`/api/charts/image/${SESSION_ID}/${name}`);
-    const data=await res.json();
+    const data = await safeJson(res);
     Plotly.newPlot(id,data.data,data.layout,{responsive:true,displayModeBar:true});
   } catch(e){console.error('Plotly:',e);}
 }
@@ -672,7 +684,7 @@ async function generateRecommendations() {
   setWfStep(6);
   try {
     const res=await safeFetch(`/api/workflow/recommendations/${SESSION_ID}`);
-    const data=await res.json();
+    const data = await safeJson(res);
     renderRecommendResult(data);
   } catch(e){
     document.getElementById('recommendResult').innerHTML=`<div class="card"><p style="color:var(--red)">Error: ${e.message}</p></div>`;
@@ -807,7 +819,7 @@ function renderCorrelation() {
 async function renderPreview() {
   try {
     const res=await safeFetch(`/api/analysis/preview/${SESSION_ID}?n=100`);
-    const data=await res.json();
+    const data = await safeJson(res);
     const cols=data.columns||[], rows=data.data||[];
     document.getElementById('previewContent').innerHTML=`
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;margin-bottom:12px">
@@ -841,7 +853,7 @@ async function sendChat() {
   if(!SESSION_ID){hideTyping();addChatMsg('ai','⚠️ Pehle data load karo!');return;}
   try {
     const res=await safeFetch(`/api/chat/message/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:CHAT_HISTORY.slice(-8),lang:APP_LANG})});
-    const data=await res.json(); hideTyping();
+    const data = await safeJson(res); hideTyping();
     const reply=data.reply||'Sorry, kuch error aayi.';
     addChatMsg('ai',fmtMsg(reply));
     CHAT_HISTORY.push({role:'user',content:msg});
@@ -888,7 +900,7 @@ initStep1();
 async function renderML() {
   if(!SESSION_ID){return;}
   const res = await safeFetch(`/api/ml/suggestions/${SESSION_ID}`);
-  const data = await res.json();
+  const data = await safeJson(res);
   const numCols = data.numeric_cols || [];
   const catCols = data.categorical_cols || [];
   const allCols = [...numCols, ...catCols];
@@ -955,7 +967,7 @@ async function runRegression() {
   const target = document.getElementById('ml_reg_target').value;
   setMLLoading('ml_reg_res','Running regression models...');
   const res = await safeFetch(`/api/ml/regression/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
-  const data = await res.json();
+  const data = await safeJson(res);
   showMLResult(data, 'ml_reg_res');
 }
 
@@ -963,7 +975,7 @@ async function runClassification() {
   const target = document.getElementById('ml_cls_target').value;
   setMLLoading('ml_cls_res','Training classifiers...');
   const res = await safeFetch(`/api/ml/classification/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
-  const data = await res.json();
+  const data = await safeJson(res);
   showMLResult(data, 'ml_cls_res');
 }
 
@@ -971,7 +983,7 @@ async function runClustering() {
   const n = parseInt(document.getElementById('ml_clus_n').value)||null;
   setMLLoading('ml_clus_res','Finding clusters...');
   const res = await safeFetch(`/api/ml/clustering/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n_clusters:n||null})});
-  const data = await res.json();
+  const data = await safeJson(res);
   showMLResult(data, 'ml_clus_res');
 }
 
@@ -980,7 +992,7 @@ async function runForecasting() {
   const periods = parseInt(document.getElementById('ml_fc_periods').value)||6;
   setMLLoading('ml_fc_res','Forecasting...');
   const res = await safeFetch(`/api/ml/forecasting/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,periods})});
-  const data = await res.json();
+  const data = await safeJson(res);
   showMLForecast(data);
 }
 
@@ -1093,7 +1105,7 @@ async function generateNLChart() {
   res_el.innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">⚙️ Generating chart...</div>';
   try {
     const res = await safeFetch(`/api/extras/nl-chart/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:req})});
-    const data = await res.json();
+    const data = await safeJson(res);
     if(data.error){res_el.innerHTML=`<div style="color:var(--red)">${data.error}</div>`;return;}
     res_el.innerHTML=`
       <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Type: <strong class="c-accent">${data.spec?.chart_type}</strong> | X: <strong>${data.spec?.x_col||'—'}</strong> | Y: <strong>${data.spec?.y_col||'—'}</strong></div>
@@ -1152,14 +1164,14 @@ function getDBConfig(){
 
 async function testDBConnection(){
   const res=await safeFetch('/api/extras/db/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
-  const data=await res.json();
+  const data = await safeJson(res);
   const el=document.getElementById('db_result');
   el.innerHTML=`<div style="padding:10px;border-radius:8px;font-size:13px;background:${data.success?'rgba(63,185,80,.08)':'rgba(248,81,73,.08)'};border:1px solid ${data.success?'var(--green)':'var(--red)'};">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
 }
 
 async function loadDBTables(){
   const res=await safeFetch('/api/extras/db/tables',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig()})});
-  const data=await res.json();
+  const data = await safeJson(res);
   if(!data.success){document.getElementById('db_tables').innerHTML=`<p style="color:var(--red)">${data.error}</p>`;return;}
   document.getElementById('db_tables').innerHTML=`
     <div class="card-title" style="margin-top:8px">Tables Found (${data.tables.length})</div>
@@ -1171,7 +1183,7 @@ async function loadDBTables(){
 async function loadDBTable(table){
   showLoading(`Loading table: ${table}`,20,'Reading from database...');
   const res=await safeFetch('/api/extras/db/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({db_type:document.getElementById('db_type').value,config:getDBConfig(),table})});
-  const data=await res.json();
+  const data = await safeJson(res);
   if(data.error){hideLoading();showErrorBanner('Error: ' + data.error);return;}
   await runFullPipeline(data.session_id, data.filename);
 }
@@ -1203,7 +1215,7 @@ async function sendEmail(){
   const el=document.getElementById('emailResult');
   el.innerHTML='<span style="color:var(--muted)">📤 Sending...</span>';
   const res=await safeFetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-  const data=await res.json();
+  const data = await safeJson(res);
   el.innerHTML=`<div style="font-size:13px;color:${data.success?'var(--green)':'var(--red)'}">${data.success?'✅ '+data.message:'❌ '+data.error}</div>`;
 }
 
@@ -1211,7 +1223,7 @@ async function sendEmail(){
 async function checkAuth(){
   try {
     const res=await safeFetch('/api/auth/me', {credentials:'include'});
-    const data=await res.json();
+    const data = await safeJson(res);
     if(data.logged_in){
       document.getElementById('userBadge').textContent='👤 '+data.username;
       document.getElementById('userBadge').style.display='inline-block';
@@ -1236,7 +1248,7 @@ async function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
   const res=await safeFetch('/api/auth/login', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-  const data=await res.json();
+  const data = await safeJson(res);
   if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
   else document.getElementById('loginError').textContent=data.error;
 }
@@ -1245,7 +1257,7 @@ async function doRegister(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
   const res=await safeFetch('/api/auth/register', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-  const data=await res.json();
+  const data = await safeJson(res);
   if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
   else document.getElementById('loginError').textContent=data.error;
 }
