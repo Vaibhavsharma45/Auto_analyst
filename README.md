@@ -1,132 +1,178 @@
----
-title: DataMind Pro
-emoji: ⚡
-colorFrom: blue
-colorTo: purple
-sdk: docker
-pinned: false
-app_port: 7860
----
-# ⚡ DataMind Pro — AI-Powered Data Analysis Platform
+<div align="center">
 
-> A full-stack data analyst in your browser. Upload any dataset and get professional EDA, statistical analysis, ML predictions, AI-generated insights, and actionable recommendations — all in one place.
+# ⚡ DataMind Pro
 
----
+### AI-Powered Data Analysis Platform
 
-## 💡 The Problem I Wanted to Solve
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-datamind--pro.onrender.com-58a6ff?style=for-the-badge)](https://datamind-pro.onrender.com)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-F55036?style=for-the-badge)](https://groq.com)
+[![Render](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
 
-Every time I had to analyze a dataset, I found myself doing the same repetitive things — cleaning data in pandas, writing matplotlib code for charts, manually identifying patterns, writing up findings. It took hours just to get to the "interesting part."
+<br/>
 
-I wanted something that could do all of that automatically, the way a senior data analyst would — not just show some basic charts, but actually follow the real workflow: define the problem, collect and validate data, clean it, analyze patterns, communicate findings clearly, and recommend what to do next.
+> Upload any dataset → Get professional EDA, ML predictions, AI insights & action plan in minutes.
+> Works like a **senior data analyst** — without writing a single line of code.
 
-That's what DataMind Pro is.
-
----
-
-## 🎯 What It Does
-
-DataMind Pro follows the complete 6-step data analysis workflow:
+<br/>
 
 ```
-Step 1 → Ask the Right Question    (goal definition wizard)
-Step 2 → Collect Relevant Data     (file upload + DB connect)
-Step 3 → Clean & Transform Data    (8 transformation operations)
-Step 4 → Analyze Patterns          (EDA + charts)
-Step 5 → Communicate Insights      (AI executive summary + data story)
-Step 6 → Recommend Actions         (prioritized action items)
+📂 Upload CSV/Excel  →  📊 Auto EDA  →  🤖 ML Models  →  💬 Ask AI  →  📤 Export Report
 ```
 
-Because insight without action = useless.
+</div>
+
+---
+
+## 🎯 The Problem I Solved
+
+Every data analysis project starts the same way — clean the data, write matplotlib code, identify patterns, summarize findings. **Hours of repetitive work** before you get to the interesting part.
+
+DataMind Pro automates the **entire workflow** so you can focus on decisions, not code.
+
+---
+
+## 🚀 Live Demo
+
+<div align="center">
+
+**[→ Try it now: datamind-pro.onrender.com](https://datamind-pro.onrender.com)**
+
+> ⚠️ Free tier — app may take 30–60 seconds to wake up on first visit.
+
+</div>
 
 ---
 
 ## ✨ Features
 
-### 📊 Analysis Engine
-- Full EDA — descriptive stats, distributions, outlier detection (IQR), normality tests (Shapiro-Wilk)
-- Correlation analysis — Pearson, Spearman, Kendall matrices with strong-pair detection
-- PCA summary — explained variance, component loadings
-- Data quality scoring (0–100) with issue detection and fix recommendations
-- ANOVA group analysis — categorical vs numeric significance testing
+### 📊 6-Step Analysis Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1️⃣ Ask        2️⃣ Collect    3️⃣ Clean     4️⃣ Analyze           │
+│  Goal Wizard → Upload Data → Transform → EDA + Charts          │
+│                                                                  │
+│  5️⃣ Insights   6️⃣ Actions                                       │
+│  AI Summary  → Action Plan                                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| Step | Feature | Details |
+|------|---------|---------|
+| 1️⃣ | **Goal Wizard** | 6 templates — Sales, HR, Finance, Operations, Customer, Custom |
+| 2️⃣ | **Data Upload** | CSV, Excel, JSON, TSV — up to 100MB |
+| 3️⃣ | **Clean & Transform** | 10 operations — fill missing, normalize, filter, rename, sort |
+| 4️⃣ | **Analyze Patterns** | Full EDA — stats, correlations, distributions, outliers |
+| 5️⃣ | **Communicate Insights** | AI executive summary + data story narrative |
+| 6️⃣ | **Recommend Actions** | Prioritized plan with impact / effort / timeline |
+
+---
 
 ### 📈 Charts & Visualizations
-- Distribution dashboards (KDE + histogram) — Matplotlib
-- Box plots, violin plots, Q-Q plots — Seaborn
-- Correlation heatmaps — Seaborn diverging palette
-- Scatter matrix / pairplot — Seaborn
-- Interactive scatter plots and distribution charts — Plotly
-- Natural Language to Chart — describe a chart in Hinglish, AI generates it
 
-### 🤖 AI Features (Groq Llama 3.3 — Free)
-- AI chatbot — ask anything about your data in Hinglish
-- Executive summary — headline finding + key insights with numbers
-- Data story — narrative that tells the story of what the data reveals
-- Action recommendations — immediate actions with impact/effort/timeline
-- Natural language to chart — "sales ka bar chart banao category wise"
+```
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ Distribution │  │  Heatmap     │  │  Box Plots   │  │   Scatter    │
+│  Dashboard   │  │ Correlation  │  │  Violin Plots│  │   Matrix     │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
+┌──────────────┐  ┌──────────────────────────────────────────────────┐
+│   Q-Q Plots  │  │  🗣️ NL to Chart — "sales ka bar chart banao" → ✅ │
+└──────────────┘  └──────────────────────────────────────────────────┘
+```
 
-### 🔮 Machine Learning
-- Regression — Linear, Ridge, Random Forest, Gradient Boosting (auto-compares all 4)
-- Classification — Logistic Regression, Random Forest (auto-detects target type)
-- Clustering — K-Means with auto-elbow detection, silhouette scoring, cluster profiles
-- Forecasting — Linear trend + moving average, next N periods prediction
+---
 
-### ⚙️ Data Operations
-- 8 transform operations: drop columns, fill missing, normalize, create computed columns, filter rows, sort, rename, drop duplicates
-- Supports CSV, TSV, Excel (.xlsx), JSON upload
-- Database connection — MySQL, PostgreSQL, SQLite (via SQLAlchemy)
+### 🤖 Machine Learning Models
+
+```
+📈 Regression          🏷️ Classification      🔵 Clustering
+─────────────          ──────────────────      ─────────────
+Linear Regression      Logistic Regression     K-Means (auto k)
+Ridge Regression       Random Forest           Cluster Profiles
+Random Forest    ───▶  Best model auto-picked  Silhouette Score
+Gradient Boosting      Feature importance      
+R�, RMSE, MAE          Accuracy %              
+
+🔮 Forecasting
+──────────────
+Linear Trend + Moving Average → Future predictions with chart
+```
+
+---
+
+### 💬 AI Features
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Powered by Groq Llama 3.3 70B (Free API)                   │
+│                                                              │
+│  💬 Chatbot     → Ask anything about your data (Hinglish ✅) │
+│  📋 Summary     → Executive insights with real numbers       │
+│  📖 Data Story  → Narrative arc of your dataset             │
+│  🎯 Actions     → What to do next — with evidence           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ### 📤 Export Options
-- PDF Report — multi-page professional report with all stats and charts (ReportLab)
-- PowerPoint — full dark-theme presentation with charts and insights (python-pptx)
-- CSV + Excel export — with formatted headers (xlsxwriter)
-- Email report — PDF sent via SMTP
 
-### 👥 Multi-user Support
-- Login/Register system
-- Per-user session isolation
-- No database required — stored in local JSON
+| Format | Tool | Content |
+|--------|------|---------|
+| 📄 PDF Report | ReportLab | Full analysis with charts |
+| 📽️ PowerPoint | python-pptx | 9-slide dark theme deck |
+| 📊 Excel | xlsxwriter | Cleaned dataset |
+| ⬇️ CSV | pandas | Raw export |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| Backend | Flask, Flask-CORS, Gunicorn |
-| Data Analysis | pandas, numpy, scipy |
-| Machine Learning | scikit-learn |
-| Visualizations | matplotlib, seaborn, plotly |
-| AI/LLM | Groq API (Llama 3.3 70B) — free tier |
-| Reports | ReportLab (PDF), python-pptx (PowerPoint) |
-| Database | SQLAlchemy, PyMySQL, psycopg2 |
-| Frontend | Vanilla JS, CSS (no frameworks) |
+```
+Backend          Data & ML           Visualizations      AI
+────────         ─────────           ──────────────      ──
+Flask            pandas              matplotlib          Groq API
+Flask-CORS        numpy               seaborn             Llama 3.3 70B
+Gunicorn         scipy               plotly
+                 statsmodels         
+                 scikit-learn        Reports
+                                     ───────
+Database         Auth                ReportLab (PDF)
+────────         ────                python-pptx
+SQLAlchemy       JSON-based          xlsxwriter
+PyMySQL          Session store
+psycopg2
+```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Run Locally
 
 ```bash
-# Clone the repo
+# Clone
 git clone https://github.com/Vaibhavsharma45/Auto_analyst
 cd Auto_analyst
 
-# Create virtual environment
+# Setup virtual environment
 python -m venv venv
 venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Mac/Linux
+source venv/bin/activate     # Mac/Linux
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Add your Groq API key (free at console.groq.com)
-# Create .env file:
+# Add your free Groq API key
 echo "GROQ_API_KEY=gsk_your_key_here" > .env
+echo "SECRET_KEY=any-random-string" >> .env
 
 # Run
 python app.py
+# → Open http://localhost:5000
 ```
 
-Open `http://localhost:5000` — login screen will appear automatically.
+**Get free Groq API key (no credit card):** [console.groq.com](https://console.groq.com)
 
 ---
 
@@ -136,50 +182,58 @@ Open `http://localhost:5000` — login screen will appear automatically.
 datamind-pro/
 ├── app.py                          ← Flask entry point
 ├── requirements.txt
-├── runtime.txt                     ← Python 3.11 for Render
-│
 ├── backend/
 │   ├── analysis/
-│   │   ├── eda_engine.py           ← Full EDA — pandas + scipy
+│   │   ├── eda_engine.py           ← Full EDA (pandas + scipy)
 │   │   ├── chart_generator.py      ← matplotlib + seaborn + plotly
 │   │   ├── ml_engine.py            ← sklearn ML models
-│   │   ├── insights_engine.py      ← AI summaries + recommendations
-│   │   ├── problem_engine.py       ← Goal definition + validation
+│   │   ├── insights_engine.py      ← Groq AI summaries
 │   │   ├── ppt_generator.py        ← PowerPoint generation
 │   │   └── report_generator.py     ← PDF report
 │   ├── routes/                     ← 9 Flask Blueprints
-│   └── utils/                      ← DB, email, auth, session, loader
-│
+│   │   ├── upload_routes.py
+│   │   ├── analysis_routes.py
+│   │   ├── chart_routes.py
+│   │   ├── ml_routes.py
+│   │   ├── extras_routes.py        ← DB, Email, PPT, NL-chart
+│   │   ├── chat_routes.py          ← Groq chatbot
+│   │   ├── workflow_routes.py
+│   │   ├── report_routes.py
+│   │   └── auth_routes.py
+│   └── utils/
+│       ├── data_loader.py
+│       ├── session_store.py
+│       ├── db_connector.py         ← MySQL / PostgreSQL / SQLite
+│       ├── email_sender.py         ← SMTP PDF email
+│       └── auth.py                 ← Multi-user auth
 └── frontend/
-    ├── templates/index.html
+    ├── templates/index.html        ← Single page app
     └── static/
-        ├── css/main.css
-        └── js/app.js
+        ├── css/main.css            ← Dark theme (Syne font)
+        └── js/app.js               ← All frontend logic (~1100 lines)
 ```
 
 ---
 
-## 🌐 Deployment
+## 💡 What I Learned
 
-Deployed on Render. Add these environment variables in Render dashboard:
-
-```
-GROQ_API_KEY = your_groq_key
-SECRET_KEY   = any_random_string
-FLASK_ENV    = production
-```
-
----
-
-## 📝 What I Learned Building This
-
-- Integrating multiple Python data science libraries (pandas, scipy, sklearn, seaborn, plotly) into a single web app
-- Building a proper Flask REST API with multiple blueprints
-- Generating professional PDFs and PowerPoints programmatically
-- Working with the Groq API for free LLM inference
-- Handling large file uploads, in-memory session management
-- Building a complete dark-theme UI in vanilla JS without any frontend framework
+- Building a production **Flask REST API** with 9 Blueprints
+- Integrating **pandas + scipy + sklearn + plotly** in one app
+- Generating professional **PDFs and PowerPoints** programmatically
+- Working with **Groq API** for free LLM inference (Llama 3.3 70B)
+- Building a complete **dark-theme SPA** in vanilla JS (no React)
+- Handling large file uploads and **in-memory session management**
+- Deploying Flask on **Render** with proper CORS setup
+- Building a full **multi-user auth system** from scratch
 
 ---
 
-*Made with ❤️ by Vaibhav Sharma*
+<div align="center">
+
+Made with ❤️ by **Vaibhav Sharma**
+
+[![GitHub](https://img.shields.io/badge/GitHub-Vaibhavsharma45-181717?style=flat-square&logo=github)](https://github.com/Vaibhavsharma45)
+
+⭐ Star this repo if you found it useful!
+
+</div>
