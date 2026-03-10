@@ -19,11 +19,43 @@ let APP_LANG = localStorage.getItem('datamind_lang') || 'en';
 function toggleLang() {
   APP_LANG = APP_LANG === 'en' ? 'hi' : 'en';
   localStorage.setItem('datamind_lang', APP_LANG);
+  applyLang();
+}
+
+function applyLang() {
   const btn = document.getElementById('langBtn');
   if(btn) btn.textContent = APP_LANG === 'en' ? '🇬🇧 EN' : '🇮🇳 HI';
-  // Update chatbot system prompt label
-  const label = document.getElementById('chatLangLabel');
-  if(label) label.textContent = APP_LANG === 'en' ? 'English Mode' : 'Hinglish Mode';
+
+  // Update all lang-aware UI elements
+  const isEn = APP_LANG === 'en';
+
+  // Chat placeholder
+  const chatInput = document.getElementById('chatInput');
+  if(chatInput) chatInput.placeholder = isEn
+    ? 'Ask anything about your data...'
+    : 'Data ke baare mein kuch bhi poochho...';
+
+  // Chat panel title
+  const chatTitle = document.getElementById('chatPanelTitle');
+  if(chatTitle) chatTitle.textContent = isEn ? 'AI Data Analyst' : 'AI Data Analyst 🇮🇳';
+
+  // Step subtitles (if visible)
+  const step1Sub = document.getElementById('step1Sub');
+  if(step1Sub) step1Sub.textContent = isEn
+    ? 'Insight without a clear question is wasted effort.'
+    : 'Sahi sawaal ke bina insights bekar hain.';
+
+  // Goal question placeholder
+  const goalInput = document.getElementById('goalInput');
+  if(goalInput) goalInput.placeholder = isEn
+    ? 'e.g. Which products are underperforming this quarter?'
+    : 'e.g. Kaunse products is quarter mein kam perform kar rahe hain?';
+
+  // NL Chart placeholder
+  const nlInput = document.getElementById('nlChartInput');
+  if(nlInput) nlInput.placeholder = isEn
+    ? 'e.g. Show me a bar chart of sales by region'
+    : 'e.g. Region ke hisaab se sales ka bar chart banao';
 }
 
 function getLangInstruction() {
@@ -692,7 +724,7 @@ async function sendChat() {
   addChatMsg('user',msg); showTyping();
   if(!SESSION_ID){hideTyping();addChatMsg('ai','⚠️ Pehle data load karo!');return;}
   try {
-    const res=await safeFetch(`/api/chat/message/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:CHAT_HISTORY.slice(-8)})});
+    const res=await safeFetch(`/api/chat/message/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:CHAT_HISTORY.slice(-8),lang:APP_LANG})});
     const data=await res.json(); hideTyping();
     const reply=data.reply||'Sorry, kuch error aayi.';
     addChatMsg('ai',fmtMsg(reply));
@@ -1049,7 +1081,9 @@ function renderEmailSection() {
 
 async function sendEmail(){
   const email=document.getElementById('emailAddr').value.trim();
-  if(!email){showErrorBanner('Email address enter karo!');return;}
+  if(!email){showErrorBanner('Please enter a valid email address.');return;}
+  if(!email.includes('@')||!email.includes('.')){showErrorBanner('Invalid email address format.');return;}
+  if(!SESSION_ID){showErrorBanner('Please upload a dataset first.');return;}
   const el=document.getElementById('emailResult');
   el.innerHTML='<span style="color:var(--muted)">📤 Sending...</span>';
   const res=await safeFetch(`/api/extras/email/${SESSION_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
@@ -1334,3 +1368,5 @@ async function runNLPAnalysis(column) {
       </div>`;
   } catch(e) { if(resultsDiv) resultsDiv.innerHTML = '<div class="error-msg">Analysis failed: '+e.message+'</div>'; }
 }
+
+document.addEventListener('DOMContentLoaded', function(){ applyLang(); });

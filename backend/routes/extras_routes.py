@@ -60,7 +60,8 @@ def email_report(session_id):
 
     # Generate PDF first
     from backend.analysis.report_generator import ReportGenerator
-    pdf_path = os.path.join(current_app.config["REPORTS_FOLDER"], f"report_{uuid.uuid4().hex[:8]}.pdf")
+    import tempfile
+    pdf_path = os.path.join(tempfile.gettempdir(), f"report_{uuid.uuid4().hex[:8]}.pdf")
     try:
         gen = ReportGenerator(df, analysis, charts, session.get("filename", "dataset"))
         gen.generate_pdf(pdf_path)
@@ -70,6 +71,10 @@ def email_report(session_id):
     # Send email
     summary = f"Quality Score: {analysis.get('quality_report',{}).get('quality_score',0)}/100"
     result = send_report_email(to_email, pdf_path, session.get("filename","dataset"), summary)
+    # Cleanup temp PDF
+    try:
+        if os.path.exists(pdf_path): os.remove(pdf_path)
+    except: pass
     return jsonify(result)
 
 
