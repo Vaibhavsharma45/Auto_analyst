@@ -26,7 +26,7 @@ def create_app():
     app.config.update(
         UPLOAD_FOLDER=os.getenv("UPLOAD_FOLDER", "data/uploads"),
         REPORTS_FOLDER=os.getenv("REPORTS_FOLDER", "reports/output"),
-        MAX_CONTENT_LENGTH=100*1024*1024,
+        MAX_CONTENT_LENGTH=200*1024*1024,
         SECRET_KEY=os.getenv("SECRET_KEY", "datamind-v3-secret-key"),
         SESSION_COOKIE_SAMESITE="Lax"
     )

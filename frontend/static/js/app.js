@@ -209,15 +209,62 @@ dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remov
 document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])uploadFile(e.target.files[0]);});
 
 async function uploadFile(file) {
-  showLoading('Uploading file...', 15, 'Reading file bytes...');
+  if(!file) { showErrorBanner('No file selected.'); return; }
+
+  // Client-side size check — 200MB
+  const MAX_MB = 200;
+  if(file.size > MAX_MB * 1024 * 1024) {
+    showErrorBanner(`File too large: ${(file.size/1024/1024).toFixed(1)} MB. Maximum is ${MAX_MB} MB.`);
+    return;
+  }
+  if(file.size === 0) { showErrorBanner('File is empty. Please select a valid file.'); return; }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['csv','tsv','xlsx','xls','json','txt'];
+  if(!allowed.includes(ext)) {
+    showErrorBanner(`Unsupported format: .${ext}. Allowed: CSV, TSV, Excel, JSON.`);
+    return;
+  }
+
+  showLoading('Uploading file...', 15, `Reading ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)...`);
   const fd = new FormData(); fd.append('file', file);
   try {
-    const res = await safeFetch('/api/upload/file', {method:'POST',body:fd});
+    const res = await safeFetch('/api/upload/file', {method:'POST', body:fd});
+    if(!res.ok && res.status !== 200) {
+      let errText = `Server error (${res.status})`;
+      try { const d = await res.json(); errText = d.error || errText; } catch(e){}
+      hideLoading(); showErrorBanner(errText); return;
+    }
     const data = await res.json();
-    if(data.error){hideLoading();showErrorBanner('Upload error: ' + data.error);return;}
+    if(data.error) { hideLoading(); showErrorBanner(data.error); return; }
+
+    // Show warnings (non-blocking)
+    if(data.warnings && data.warnings.length > 0) {
+      showUploadWarnings(data.warnings);
+    }
+
     await runFullPipeline(data.session_id, data.filename);
-  } catch(e){hideLoading();showErrorBanner('Network error: ' + e.message);}
+  } catch(e) {
+    hideLoading();
+    let msg = e.message || 'Unknown error';
+    if(msg.includes('Failed to fetch')) msg = 'Network error. Check your connection and try again.';
+    showErrorBanner('Upload failed: ' + msg);
+  }
 }
+
+function showUploadWarnings(warnings) {
+  const existing = document.getElementById('uploadWarnings');
+  if(existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'uploadWarnings';
+  div.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:4999;background:#161b22;border:1px solid #d29922;border-radius:10px;padding:12px 18px;max-width:500px;width:90%';
+  div.innerHTML = '<div style="color:#d29922;font-weight:700;font-size:13px;margin-bottom:6px">⚠️ Data Quality Warnings</div>' +
+    warnings.map(w => `<div style="color:#c9d1d9;font-size:12px;margin:3px 0">• ${w}</div>`).join('') +
+    '<div style="color:#8b949e;font-size:11px;margin-top:8px">Dataset uploaded successfully — fix issues in Step 3: Clean.</div>';
+  document.body.appendChild(div);
+  setTimeout(() => { if(div.parentNode) div.remove(); }, 8000);
+}
+
 
 async function uploadText() {
   const text = document.getElementById('pasteArea').value.trim();
@@ -446,7 +493,16 @@ function renderAnalyze() {
   let html='<div class="chart-grid">';
   staticCharts.forEach(({key,title})=>{
     if(AVAILABLE_CHARTS.includes(key)){
-      html+=`<div class="chart-card"><h4>${title}</h4><img src="/api/charts/image/${SESSION_ID}/${key}" alt="${title}" loading="lazy"></div>`;
+      html+=`<div class="chart-card">
+        <div class="chart-card-hdr">
+          <h4>${title}</h4>
+          <div class="chart-btns">
+            <button class="chart-btn" onclick="viewChartFullscreen('/api/charts/image/${SESSION_ID}/${key}','${title}')" title="Fullscreen">⛶</button>
+            <button class="chart-btn" onclick="downloadChart('/api/charts/image/${SESSION_ID}/${key}','${key}')" title="Download">⬇</button>
+          </div>
+        </div>
+        <img src="${BACKEND_URL}/api/charts/image/${SESSION_ID}/${key}" alt="${title}" loading="lazy" onclick="viewChartFullscreen('${BACKEND_URL}/api/charts/image/${SESSION_ID}/${key}','${title}')" style="cursor:zoom-in">
+      </div>`;
     }
   });
   if(AVAILABLE_CHARTS.includes('interactive_scatter')){
@@ -1275,3 +1331,37 @@ setInterval(async function() {
     if(SESSION_ID) await fetch(api('/api/analysis/full/' + SESSION_ID + '?ping=1'));
   } catch(e) {}
 }, 8 * 60 * 1000);
+
+// ─── CHART UTILS ────────────────────────────────────
+function viewChartFullscreen(src, title) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:zoom-out';
+  overlay.onclick = () => overlay.remove();
+  overlay.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin-bottom:12px">
+      <span style="color:#e6edf3;font-weight:700;font-size:16px">${title}</span>
+      <div style="display:flex;gap:10px">
+        <button onclick="event.stopPropagation();downloadChart('${src}','chart')" style="padding:7px 16px;background:rgba(88,166,255,.15);border:1px solid rgba(88,166,255,.3);border-radius:8px;color:#58a6ff;cursor:pointer;font-family:Syne,sans-serif;font-size:12px;font-weight:700">⬇ Download</button>
+        <button onclick="document.querySelector('[style*=\"inset:0\"]').remove()" style="padding:7px 16px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.2);border-radius:8px;color:#f85149;cursor:pointer;font-family:Syne,sans-serif;font-size:12px;font-weight:700">✕ Close</button>
+      </div>
+    </div>
+    <img src="${src}" style="max-width:100%;max-height:85vh;object-fit:contain;border-radius:10px;border:1px solid #21262d" onclick="event.stopPropagation()">
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function downloadChart(src, name) {
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `datamind-${name}.png`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    // Fallback — open in new tab
+    window.open(src, '_blank');
+  }
+}
