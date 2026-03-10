@@ -11,7 +11,7 @@
 const BACKEND_URL = window.location.hostname === 'localhost' || 
                     window.location.hostname === '127.0.0.1'
   ? ''  // local — same origin
-  : 'https://datamind-pro-backend.onrender.com';  // CHANGE THIS to your Render URL
+  : 'https://datamind-pro.onrender.com';
 
 // ─── STATE ─────────────────────────────────────────
 let SESSION_ID = null;
@@ -1109,7 +1109,7 @@ function switchTab(tab) {
 checkAuth();
 
 function downloadPPT() {
-  if(SESSION_ID){ addChatMsg('ai','📽️ Generating PowerPoint...'); window.location.href=api('/api/extras/ppt/'+SESSION_ID); }
+  if(SESSION_ID){ addChatMsg('ai','📽️ Generating PowerPoint...'); window.location.href=BACKEND_URL+'/api/extras/ppt/'+SESSION_ID; }
 }
 
 // ─── KEEP ALIVE — ping server + session every 8 min ───
