@@ -11,7 +11,7 @@
 const BACKEND_URL = window.location.hostname === 'localhost' || 
                     window.location.hostname === '127.0.0.1'
   ? ''  // local — same origin
-  : 'https://datamind-pro.onrender.com'; // CHANGE THIS to your Render URL
+  : 'https://datamind-pro-backend.onrender.com';  // CHANGE THIS to your Render URL
 
 // ─── STATE ─────────────────────────────────────────
 let SESSION_ID = null;
@@ -1079,6 +1079,13 @@ async function doRegister(){
   const data=await res.json();
   if(data.success){hideLoginModal();document.getElementById('userBadge').textContent='👤 '+data.username;document.getElementById('userBadge').style.display='inline-block';document.getElementById('loginBtn').style.display='none';}
   else document.getElementById('loginError').textContent=data.error;
+}
+
+async function doGuest(){
+  hideLoginModal();
+  document.getElementById('userBadge').textContent='👤 Guest';
+  document.getElementById('userBadge').style.display='inline-block';
+  document.getElementById('loginBtn').style.display='none';
 }
 
 async function doLogout(){
