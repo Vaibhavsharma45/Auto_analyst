@@ -217,6 +217,10 @@ datamind-pro/
 
 ## 💡 What I Learned
 
+Building this taught me how to integrate a full data science stack in one production app — pandas + scipy + sklearn + plotly + Groq API — along with session management, file handling, PDF/PPT generation, and deploying Flask on Render with proper CORS setup.
+
+
+
 - Building a production **Flask REST API** with 9 Blueprints
 - Integrating **pandas + scipy + sklearn + plotly** in one app
 - Generating professional **PDFs and PowerPoints** programmatically
